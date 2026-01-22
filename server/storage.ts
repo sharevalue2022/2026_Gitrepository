@@ -1,4 +1,4 @@
-import { users, conversations, messages, paymentRequests, type User, type InsertUser, type Conversation, type InsertConversation, type Message, type InsertMessage, type PaymentRequest, type InsertPaymentRequest } from "@shared/schema";
+import { users, conversations, messages, paymentRequests, reports, blocks, type User, type InsertUser, type Conversation, type InsertConversation, type Message, type InsertMessage, type PaymentRequest, type InsertPaymentRequest, type Report, type InsertReport, type Block, type InsertBlock } from "@shared/schema";
 import { db } from "./db";
 import { eq, or, and, desc, ne } from "drizzle-orm";
 
@@ -28,6 +28,12 @@ export interface IStorage {
   getPendingPaymentRequests(): Promise<(PaymentRequest & { user: User })[]>;
   approvePaymentRequest(id: string, adminId: string): Promise<PaymentRequest | undefined>;
   rejectPaymentRequest(id: string, adminId: string, notes?: string): Promise<PaymentRequest | undefined>;
+
+  createReport(report: InsertReport): Promise<Report>;
+  getReportsByUserId(userId: string): Promise<Report[]>;
+  createBlock(block: InsertBlock): Promise<Block>;
+  getBlocksByUserId(userId: string): Promise<Block[]>;
+  getRiskyUsers(): Promise<(User & { reportCount: number; blockCount: number })[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -298,8 +304,53 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(paymentRequests.id, id))
       .returning();
-    
+
     return request || undefined;
+  }
+
+  async createReport(insertReport: InsertReport): Promise<Report> {
+    const [report] = await db.insert(reports).values(insertReport).returning();
+
+    // Increment report count for reported user
+    await db.update(users)
+      .set({ reportCount: sql`COALESCE(${users.reportCount}, 0) + 1` })
+      .where(eq(users.id, insertReport.reportedUserId));
+
+    return report;
+  }
+
+  async getReportsByUserId(userId: string): Promise<Report[]> {
+    return await db.select().from(reports).where(eq(reports.reportedUserId, userId));
+  }
+
+  async createBlock(insertBlock: InsertBlock): Promise<Block> {
+    const [block] = await db.insert(blocks).values(insertBlock).returning();
+
+    // Increment block count for blocked user
+    await db.update(users)
+      .set({ blockCount: sql`COALESCE(${users.blockCount}, 0) + 1` })
+      .where(eq(users.id, insertBlock.blockedUserId));
+
+    return block;
+  }
+
+  async getBlocksByUserId(userId: string): Promise<Block[]> {
+    return await db.select().from(blocks).where(eq(blocks.blockedUserId, userId));
+  }
+
+  async getRiskyUsers(): Promise<(User & { reportCount: number; blockCount: number })[]> {
+    const riskyUsers = await db.select().from(users)
+      .where(or(
+        sql`COALESCE(${users.reportCount}, 0) >= 5`,
+        sql`COALESCE(${users.blockCount}, 0) >= 3`
+      ))
+      .orderBy(desc(sql`COALESCE(${users.reportCount}, 0) + COALESCE(${users.blockCount}, 0)`));
+
+    return riskyUsers.map(u => ({
+      ...u,
+      reportCount: u.reportCount || 0,
+      blockCount: u.blockCount || 0,
+    }));
   }
 }
 
@@ -309,6 +360,8 @@ class InMemoryStorage implements IStorage {
   private conversations: Map<string, Conversation> = new Map();
   private messages: Map<string, Message> = new Map();
   private paymentRequests: Map<string, PaymentRequest> = new Map();
+  private reports: Map<string, Report> = new Map();
+  private blocks: Map<string, Block> = new Map();
 
   async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
@@ -322,6 +375,8 @@ class InMemoryStorage implements IStorage {
     const user: User = {
       ...insertUser,
       id: insertUser.id || crypto.randomUUID(),
+      reportCount: 0,
+      blockCount: 0,
       createdAt: new Date(),
     } as User;
     this.users.set(user.id, user);
@@ -523,6 +578,61 @@ class InMemoryStorage implements IStorage {
     };
     this.paymentRequests.set(id, updated);
     return updated;
+  }
+
+  async createReport(insertReport: InsertReport): Promise<Report> {
+    const report: Report = {
+      ...insertReport,
+      id: crypto.randomUUID(),
+      createdAt: new Date(),
+    };
+    this.reports.set(report.id, report);
+
+    // Increment report count for reported user
+    const user = this.users.get(insertReport.reportedUserId);
+    if (user) {
+      const updated = { ...user, reportCount: (user.reportCount || 0) + 1 };
+      this.users.set(user.id, updated);
+    }
+
+    return report;
+  }
+
+  async getReportsByUserId(userId: string): Promise<Report[]> {
+    return Array.from(this.reports.values()).filter(r => r.reportedUserId === userId);
+  }
+
+  async createBlock(insertBlock: InsertBlock): Promise<Block> {
+    const block: Block = {
+      ...insertBlock,
+      id: crypto.randomUUID(),
+      createdAt: new Date(),
+    };
+    this.blocks.set(block.id, block);
+
+    // Increment block count for blocked user
+    const user = this.users.get(insertBlock.blockedUserId);
+    if (user) {
+      const updated = { ...user, blockCount: (user.blockCount || 0) + 1 };
+      this.users.set(user.id, updated);
+    }
+
+    return block;
+  }
+
+  async getBlocksByUserId(userId: string): Promise<Block[]> {
+    return Array.from(this.blocks.values()).filter(b => b.blockedUserId === userId);
+  }
+
+  async getRiskyUsers(): Promise<(User & { reportCount: number; blockCount: number })[]> {
+    return Array.from(this.users.values())
+      .filter(u => (u.reportCount || 0) >= 5 || (u.blockCount || 0) >= 3)
+      .map(u => ({
+        ...u,
+        reportCount: u.reportCount || 0,
+        blockCount: u.blockCount || 0,
+      }))
+      .sort((a, b) => (b.reportCount + b.blockCount) - (a.reportCount + a.blockCount));
   }
 
   // Reset all data (for testing/development)

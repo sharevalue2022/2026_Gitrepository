@@ -33,6 +33,8 @@ export const users = pgTable("users", {
   isBanned: boolean("is_banned").default(false),
   bannedAt: timestamp("banned_at"),
   bannedReason: text("banned_reason"),
+  reportCount: integer("report_count").default(0),
+  blockCount: integer("block_count").default(0),
   lastActive: timestamp("last_active").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -119,6 +121,52 @@ export const paymentRequestsRelations = relations(paymentRequests, ({ one }) => 
   }),
 }));
 
+export const reports = pgTable("reports", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  reporterId: varchar("reporter_id").notNull().references(() => users.id),
+  reportedUserId: varchar("reported_user_id").notNull().references(() => users.id),
+  reason: text("reason").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const reportsRelations = relations(reports, ({ one }) => ({
+  reporter: one(users, {
+    fields: [reports.reporterId],
+    references: [users.id],
+    relationName: "reporter",
+  }),
+  reportedUser: one(users, {
+    fields: [reports.reportedUserId],
+    references: [users.id],
+    relationName: "reportedUser",
+  }),
+}));
+
+export const blocks = pgTable("blocks", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  blockerId: varchar("blocker_id").notNull().references(() => users.id),
+  blockedUserId: varchar("blocked_user_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const blocksRelations = relations(blocks, ({ one }) => ({
+  blocker: one(users, {
+    fields: [blocks.blockerId],
+    references: [users.id],
+    relationName: "blocker",
+  }),
+  blockedUser: one(users, {
+    fields: [blocks.blockedUserId],
+    references: [users.id],
+    relationName: "blockedUser",
+  }),
+}));
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -144,6 +192,16 @@ export const insertPaymentRequestSchema = createInsertSchema(paymentRequests).om
   processedBy: true,
 });
 
+export const insertReportSchema = createInsertSchema(reports).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertBlockSchema = createInsertSchema(blocks).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
@@ -152,3 +210,7 @@ export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect;
 export type InsertPaymentRequest = z.infer<typeof insertPaymentRequestSchema>;
 export type PaymentRequest = typeof paymentRequests.$inferSelect;
+export type InsertReport = z.infer<typeof insertReportSchema>;
+export type Report = typeof reports.$inferSelect;
+export type InsertBlock = z.infer<typeof insertBlockSchema>;
+export type Block = typeof blocks.$inferSelect;

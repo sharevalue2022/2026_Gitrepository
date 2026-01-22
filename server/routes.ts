@@ -766,6 +766,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get risky users (admin)
+  app.get("/api/admin/risky-users", async (req, res) => {
+    try {
+      const riskyUsers = await storage.getRiskyUsers();
+      const formatted = riskyUsers.map(user => ({
+        id: user.id,
+        name: user.name,
+        age: user.age,
+        gender: user.gender,
+        phoneNumber: user.phoneNumber,
+        reportCount: user.reportCount || 0,
+        blockCount: user.blockCount || 0,
+        isSuspended: user.isSuspended,
+        isBanned: user.isBanned,
+        createdAt: user.createdAt,
+      }));
+      return res.json({ success: true, users: formatted });
+    } catch (error) {
+      console.error("Get risky users error:", error);
+      return res.status(500).json({ success: false, message: "서버 오류가 발생했습니다." });
+    }
+  });
+
   // Seed mock users to database
   // Delete user (admin)
   app.delete("/api/admin/users/:userId", async (req, res) => {
