@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <title>킹데이트 관리자 로그인</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #1A1A1D;
+        color: #E5E5E5;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1.5;
+      }
+      .login-container {
+        width: 100%;
+        max-width: 400px;
+        padding: 24px;
+      }
+      .login-card {
+        background: #2A2A2D;
+        border: 1px solid #333;
+        border-radius: 16px;
+        padding: 40px 32px;
+      }
+      .logo {
+        text-align: center;
+        margin-bottom: 32px;
+      }
+      .logo h1 {
+        font-size: 28px;
+        font-weight: 700;
+        color: #C4A875;
+        margin-bottom: 8px;
+      }
+      .logo p {
+        font-size: 14px;
+        color: #888;
+      }
+      .form-group {
+        margin-bottom: 20px;
+      }
+      .form-group label {
+        display: block;
+        font-size: 14px;
+        color: #999;
+        margin-bottom: 8px;
+      }
+      .form-group input {
+        width: 100%;
+        padding: 14px 16px;
+        background: #1A1A1D;
+        border: 1px solid #444;
+        border-radius: 8px;
+        color: #E5E5E5;
+        font-size: 16px;
+        transition: border-color 0.2s;
+      }
+      .form-group input:focus {
+        outline: none;
+        border-color: #6B5B95;
+      }
+      .form-group input::placeholder {
+        color: #666;
+      }
+      .login-btn {
+        width: 100%;
+        padding: 14px;
+        background: linear-gradient(135deg, #6B5B95, #8B7BB5);
+        border: none;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: opacity 0.2s;
+        margin-top: 8px;
+      }
+      .login-btn:hover {
+        opacity: 0.9;
+      }
+      .login-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .error-message {
+        background: rgba(244, 67, 54, 0.1);
+        border: 1px solid #F44336;
+        border-radius: 8px;
+        padding: 12px 16px;
+        color: #F44336;
+        font-size: 14px;
+        margin-bottom: 20px;
+        display: none;
+      }
+      .error-message.show {
+        display: block;
+      }
+      .footer {
+        text-align: center;
+        margin-top: 24px;
+        font-size: 12px;
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <div class="login-card">
+        <div class="logo">
+          <h1>킹데이트</h1>
+          <p>관리자 전용</p>
+        </div>
+
+        <div class="error-message" id="error-message"></div>
+
+        <form id="login-form" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label for="username">아이디</label>
+            <input 
+              type="text" 
+              id="username" 
+              name="username" 
+              placeholder="관리자 아이디 입력"
+              required
+              autocomplete="username"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="password">비밀번호</label>
+            <input 
+              type="password" 
+              id="password" 
+              name="password" 
+              placeholder="비밀번호 입력"
+              required
+              autocomplete="current-password"
+            />
+          </div>
+
+          <button type="submit" class="login-btn" id="login-btn">
+            로그인
+          </button>
+        </form>
+
+        <div class="footer">
+          킹데이트 관리자 시스템
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Check if already logged in
+      const adminToken = localStorage.getItem('admin_token');
+      if (adminToken) {
+        window.location.href = '/admin/dashboard';
+      }
+
+      async function handleLogin(event) {
+        event.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const errorMessage = document.getElementById('error-message');
+        const loginBtn = document.getElementById('login-btn');
+
+        errorMessage.classList.remove('show');
+        loginBtn.disabled = true;
+        loginBtn.textContent = '로그인 중...';
+
+        try {
+          const response = await fetch('/api/admin/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            localStorage.setItem('admin_token', data.token);
+            window.location.href = '/admin/dashboard';
+          } else {
+            errorMessage.textContent = data.message || '로그인에 실패했습니다.';
+            errorMessage.classList.add('show');
+          }
+        } catch (error) {
+          console.error('Login error:', error);
+          errorMessage.textContent = '서버 연결에 실패했습니다.';
+          errorMessage.classList.add('show');
+        } finally {
+          loginBtn.disabled = false;
+          loginBtn.textContent = '로그인';
+        }
+      }
+    </script>
+  </body>
+</html>
