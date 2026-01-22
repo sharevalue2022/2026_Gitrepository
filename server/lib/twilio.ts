@@ -1,88 +1,69 @@
 // Twilio SMS Integration for KingDate phone verification
 import twilio from 'twilio';
 
-let connectionSettings: any;
+function getTwilioCredentials() {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const phoneNumber = process.env.TWILIO_PHONE_NUMBER;
 
-async function getCredentials() {
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY 
-    ? 'repl ' + process.env.REPL_IDENTITY 
-    : process.env.WEB_REPL_RENEWAL 
-    ? 'depl ' + process.env.WEB_REPL_RENEWAL 
-    : null;
-
-  if (!xReplitToken) {
-    throw new Error('X_REPLIT_TOKEN not found for repl/depl');
+  if (!accountSid || !authToken || !phoneNumber) {
+    throw new Error(
+      'Twilio credentials not set. Please set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER in .env file'
+    );
   }
 
-  const response = await fetch(
-    'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=twilio',
-    {
-      headers: {
-        'Accept': 'application/json',
-        'X_REPLIT_TOKEN': xReplitToken
-      }
-    }
-  );
-  const data = await response.json();
-  console.log('[Twilio] Connection response:', JSON.stringify(data, null, 2));
-  
-  connectionSettings = data.items?.[0];
-
-  if (!connectionSettings || (!connectionSettings.settings?.account_sid || !connectionSettings.settings?.api_key || !connectionSettings.settings?.api_key_secret)) {
-    console.log('[Twilio] Settings found:', connectionSettings?.settings);
-    throw new Error('Twilio not connected');
-  }
-  return {
-    accountSid: connectionSettings.settings.account_sid,
-    apiKey: connectionSettings.settings.api_key,
-    apiKeySecret: connectionSettings.settings.api_key_secret,
-    phoneNumber: connectionSettings.settings.phone_number
-  };
+  return { accountSid, authToken, phoneNumber };
 }
 
-export async function getTwilioClient() {
-  const { accountSid, apiKey, apiKeySecret } = await getCredentials();
-  return twilio(apiKey, apiKeySecret, {
-    accountSid: accountSid
-  });
+export function getTwilioClient() {
+  const { accountSid, authToken } = getTwilioCredentials();
+  return twilio(accountSid, authToken);
 }
 
-export async function getTwilioFromPhoneNumber() {
-  const { phoneNumber } = await getCredentials();
+export function getTwilioFromPhoneNumber() {
+  const { phoneNumber } = getTwilioCredentials();
   return phoneNumber;
 }
 
 export async function sendVerificationSMS(toPhoneNumber: string, code: string): Promise<boolean> {
   try {
-    const client = await getTwilioClient();
-    const fromNumber = await getTwilioFromPhoneNumber();
-    
+    const client = getTwilioClient();
+    const fromNumber = getTwilioFromPhoneNumber();
+
     const formattedPhone = formatKoreanPhoneNumber(toPhoneNumber);
-    
+
+    console.log(`[Twilio] Sending SMS to ${formattedPhone} from ${fromNumber}`);
+
     await client.messages.create({
       body: `[킹데이트] 인증번호: ${code}\n5분 내로 입력해주세요.`,
       from: fromNumber,
       to: formattedPhone
     });
-    
+
+    console.log('[Twilio] SMS sent successfully');
     return true;
   } catch (error) {
-    console.error('Twilio SMS send error:', error);
+    console.error('[Twilio] SMS send error:', error);
     return false;
   }
 }
 
 function formatKoreanPhoneNumber(phone: string): string {
+  // Remove all non-digit characters
   const cleaned = phone.replace(/\D/g, '');
-  
-  if (cleaned.startsWith('010') || cleaned.startsWith('011') || cleaned.startsWith('016') || cleaned.startsWith('017') || cleaned.startsWith('018') || cleaned.startsWith('019')) {
+
+  // If starts with Korean mobile prefixes (010, 011, 016, 017, 018, 019)
+  if (cleaned.startsWith('010') || cleaned.startsWith('011') ||
+      cleaned.startsWith('016') || cleaned.startsWith('017') ||
+      cleaned.startsWith('018') || cleaned.startsWith('019')) {
     return '+82' + cleaned.substring(1);
   }
-  
+
+  // If already starts with 82 (country code)
   if (cleaned.startsWith('82')) {
     return '+' + cleaned;
   }
-  
+
+  // Otherwise, assume Korean number without prefix
   return '+82' + cleaned;
 }
