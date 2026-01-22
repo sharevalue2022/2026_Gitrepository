@@ -524,6 +524,15 @@ class InMemoryStorage implements IStorage {
     this.paymentRequests.set(id, updated);
     return updated;
   }
+
+  // Reset all data (for testing/development)
+  reset(): void {
+    this.users.clear();
+    this.conversations.clear();
+    this.messages.clear();
+    this.paymentRequests.clear();
+    console.log('[InMemoryStorage] All data cleared');
+  }
 }
 
 // Use InMemoryStorage if DATABASE_URL is not set, otherwise use DatabaseStorage

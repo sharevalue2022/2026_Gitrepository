@@ -844,7 +844,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/admin/users/:userId", async (req, res) => {
     try {
       const { userId } = req.params;
-      
+
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ success: false, message: "사용자를 찾을 수 없습니다." });
@@ -854,6 +854,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json({ success: true, message: "사용자가 삭제되었습니다." });
     } catch (error) {
       console.error("Delete user error:", error);
+      return res.status(500).json({ success: false, message: "서버 오류가 발생했습니다." });
+    }
+  });
+
+  // Reset all data (admin only - for development/testing)
+  app.post("/api/admin/reset-all", async (req, res) => {
+    try {
+      // Only works with InMemoryStorage
+      if (typeof (storage as any).reset === 'function') {
+        (storage as any).reset();
+        console.log('[Admin] All data has been reset');
+        return res.json({ success: true, message: "모든 데이터가 초기화되었습니다." });
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: "데이터베이스 모드에서는 초기화할 수 없습니다. InMemoryStorage만 지원합니다."
+        });
+      }
+    } catch (error) {
+      console.error("Reset all data error:", error);
       return res.status(500).json({ success: false, message: "서버 오류가 발생했습니다." });
     }
   });
