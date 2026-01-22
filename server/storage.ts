@@ -303,4 +303,230 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+// In-memory storage implementation (for when DATABASE_URL is not set)
+class InMemoryStorage implements IStorage {
+  private users: Map<string, User> = new Map();
+  private conversations: Map<string, Conversation> = new Map();
+  private messages: Map<string, Message> = new Map();
+  private paymentRequests: Map<string, PaymentRequest> = new Map();
+
+  async getUser(id: string): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async getUserByPhone(phoneNumber: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(u => u.phoneNumber === phoneNumber);
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const user: User = {
+      ...insertUser,
+      id: insertUser.id || crypto.randomUUID(),
+      createdAt: new Date(),
+    } as User;
+    this.users.set(user.id, user);
+    return user;
+  }
+
+  async updateUser(id: string, data: Partial<InsertUser>): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    const updated = { ...user, ...data };
+    this.users.set(id, updated);
+    return updated;
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    this.users.delete(id);
+  }
+
+  async getUsers(excludeId?: string, gender?: string): Promise<User[]> {
+    let result = Array.from(this.users.values());
+    if (excludeId) result = result.filter(u => u.id !== excludeId);
+    if (gender) result = result.filter(u => u.gender === gender);
+    return result;
+  }
+
+  async getConversation(id: string): Promise<Conversation | undefined> {
+    return this.conversations.get(id);
+  }
+
+  async getConversationByUsers(user1Id: string, user2Id: string): Promise<Conversation | undefined> {
+    return Array.from(this.conversations.values()).find(
+      c => (c.user1Id === user1Id && c.user2Id === user2Id) ||
+           (c.user1Id === user2Id && c.user2Id === user1Id)
+    );
+  }
+
+  async getConversationsForUser(userId: string): Promise<(Conversation & { otherUser: User; lastMessage?: Message })[]> {
+    const userConvs = Array.from(this.conversations.values())
+      .filter(c => c.user1Id === userId || c.user2Id === userId);
+
+    const result = [];
+    for (const conv of userConvs) {
+      const otherUserId = conv.user1Id === userId ? conv.user2Id : conv.user1Id;
+      const otherUser = await this.getUser(otherUserId);
+      if (!otherUser) continue;
+
+      const convMessages = Array.from(this.messages.values())
+        .filter(m => m.conversationId === conv.id)
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+      result.push({
+        ...conv,
+        otherUser,
+        lastMessage: convMessages[0],
+      });
+    }
+    return result;
+  }
+
+  async createConversation(conv: InsertConversation): Promise<Conversation> {
+    const conversation: Conversation = {
+      ...conv,
+      id: conv.id || crypto.randomUUID(),
+      createdAt: new Date(),
+    } as Conversation;
+    this.conversations.set(conversation.id, conversation);
+    return conversation;
+  }
+
+  async getMessages(conversationId: string): Promise<Message[]> {
+    return Array.from(this.messages.values())
+      .filter(m => m.conversationId === conversationId)
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  }
+
+  async createMessage(msg: InsertMessage): Promise<Message> {
+    const message: Message = {
+      ...msg,
+      id: msg.id || crypto.randomUUID(),
+      createdAt: new Date(),
+      isRead: msg.isRead ?? false,
+    } as Message;
+    this.messages.set(message.id, message);
+    return message;
+  }
+
+  async markMessagesAsRead(conversationId: string, userId: string): Promise<void> {
+    for (const [id, msg] of this.messages) {
+      if (msg.conversationId === conversationId && msg.senderId !== userId) {
+        this.messages.set(id, { ...msg, isRead: true });
+      }
+    }
+  }
+
+  async getAllConversationsForAdmin(): Promise<(Conversation & { user1: User; user2: User; lastMessage?: Message; messageCount: number; user1MessageCount: number; user2MessageCount: number; isOneWay: boolean })[]> {
+    const result = [];
+    for (const conv of this.conversations.values()) {
+      const user1 = await this.getUser(conv.user1Id);
+      const user2 = await this.getUser(conv.user2Id);
+      if (!user1 || !user2) continue;
+
+      const convMessages = Array.from(this.messages.values())
+        .filter(m => m.conversationId === conv.id)
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+      const user1MessageCount = convMessages.filter(m => m.senderId === conv.user1Id).length;
+      const user2MessageCount = convMessages.filter(m => m.senderId === conv.user2Id).length;
+
+      result.push({
+        ...conv,
+        user1,
+        user2,
+        lastMessage: convMessages[0],
+        messageCount: convMessages.length,
+        user1MessageCount,
+        user2MessageCount,
+        isOneWay: user1MessageCount === 0 || user2MessageCount === 0,
+      });
+    }
+    return result;
+  }
+
+  async createPaymentRequest(request: InsertPaymentRequest): Promise<PaymentRequest> {
+    const paymentRequest: PaymentRequest = {
+      ...request,
+      id: request.id || crypto.randomUUID(),
+      submittedAt: new Date(),
+      status: request.status || 'pending',
+    } as PaymentRequest;
+    this.paymentRequests.set(paymentRequest.id, paymentRequest);
+    return paymentRequest;
+  }
+
+  async getPaymentRequest(id: string): Promise<PaymentRequest | undefined> {
+    return this.paymentRequests.get(id);
+  }
+
+  async getPaymentRequestByUser(userId: string): Promise<PaymentRequest | undefined> {
+    return Array.from(this.paymentRequests.values())
+      .filter(r => r.userId === userId && r.status === 'pending')
+      .sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime())[0];
+  }
+
+  async getPaymentRequestsByUserId(userId: string): Promise<PaymentRequest[]> {
+    return Array.from(this.paymentRequests.values())
+      .filter(r => r.userId === userId)
+      .sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
+  }
+
+  async getAllPaymentRequests(): Promise<(PaymentRequest & { user: User })[]> {
+    const result = [];
+    for (const req of this.paymentRequests.values()) {
+      const user = await this.getUser(req.userId);
+      if (!user) continue;
+      result.push({ ...req, user });
+    }
+    return result.sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
+  }
+
+  async getPendingPaymentRequests(): Promise<(PaymentRequest & { user: User })[]> {
+    const all = await this.getAllPaymentRequests();
+    return all.filter(r => r.status === 'pending');
+  }
+
+  async approvePaymentRequest(id: string, adminId: string): Promise<PaymentRequest | undefined> {
+    const request = this.paymentRequests.get(id);
+    if (!request) return undefined;
+
+    const updated = {
+      ...request,
+      status: 'approved' as const,
+      processedAt: new Date(),
+      processedBy: adminId,
+    };
+    this.paymentRequests.set(id, updated);
+
+    // Update user to be king member
+    const user = await this.getUser(request.userId);
+    if (user) {
+      await this.updateUser(user.id, {
+        isKingMember: true,
+        kingMembershipStartDate: new Date(),
+      });
+    }
+
+    return updated;
+  }
+
+  async rejectPaymentRequest(id: string, adminId: string, notes?: string): Promise<PaymentRequest | undefined> {
+    const request = this.paymentRequests.get(id);
+    if (!request) return undefined;
+
+    const updated = {
+      ...request,
+      status: 'rejected' as const,
+      processedAt: new Date(),
+      processedBy: adminId,
+      notes: notes || null,
+    };
+    this.paymentRequests.set(id, updated);
+    return updated;
+  }
+}
+
+// Use InMemoryStorage if DATABASE_URL is not set, otherwise use DatabaseStorage
+export const storage = process.env.DATABASE_URL
+  ? new DatabaseStorage()
+  : new InMemoryStorage();
