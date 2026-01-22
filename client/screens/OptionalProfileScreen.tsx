@@ -48,6 +48,24 @@ export default function OptionalProfileScreen({ navigation, route }: OptionalPro
   const [bodyType, setBodyType] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // Calculate profile completeness progress
+  const calculateProgress = () => {
+    let completed = 0;
+    const totalFields = 7; // bio, foods, photos, religion, drinking, smoking, education, marital, bodyType (but we count 7 key ones)
+
+    if (bio.trim().length > 0) completed++;
+    if (selectedFoods.length > 0) completed++;
+    if (photos.length > 0) completed++;
+    if (religion) completed++;
+    if (drinking) completed++;
+    if (smoking) completed++;
+    if (education) completed++;
+
+    return Math.round((completed / totalFields) * 100);
+  };
+
+  const progress = calculateProgress();
+
   const toggleFood = (food: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedFoods((prev) =>
@@ -208,6 +226,38 @@ export default function OptionalProfileScreen({ navigation, route }: OptionalPro
         >
           선택 사항이며, 나중에 프로필에서 수정할 수 있습니다
         </ThemedText>
+
+        {/* Progress indicator */}
+        <View style={styles.progressContainer}>
+          <View style={styles.progressHeader}>
+            <ThemedText type="small" style={{ color: theme.textSecondary }}>
+              프로필 완성도
+            </ThemedText>
+            <ThemedText type="body" style={{ color: AppColors.primary, fontWeight: "600" }}>
+              {progress}%
+            </ThemedText>
+          </View>
+          <View style={[styles.progressBarBg, { backgroundColor: theme.backgroundDefault }]}>
+            <View
+              style={[
+                styles.progressBarFill,
+                {
+                  width: `${progress}%`,
+                  backgroundColor: progress >= 80 ? AppColors.success : progress >= 50 ? AppColors.primary : AppColors.warning,
+                },
+              ]}
+            />
+          </View>
+          {progress < 100 && (
+            <ThemedText type="small" style={{ color: theme.textSecondary, textAlign: "center", marginTop: Spacing.xs }}>
+              {progress >= 80
+                ? "거의 다 되었어요! 🎉"
+                : progress >= 50
+                ? "절반 넘게 완성했어요! 💪"
+                : "프로필을 채우면 매칭 확률이 올라가요!"}
+            </ThemedText>
+          )}
+        </View>
       </Animated.View>
 
       <View style={styles.photoSection}>
@@ -386,5 +436,26 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontWeight: "500",
+  },
+  progressContainer: {
+    marginTop: Spacing.xl,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    backgroundColor: "rgba(196, 168, 117, 0.1)",
+  },
+  progressHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: Spacing.sm,
+  },
+  progressBarBg: {
+    height: 8,
+    borderRadius: BorderRadius.full,
+    overflow: "hidden",
+  },
+  progressBarFill: {
+    height: "100%",
+    borderRadius: BorderRadius.full,
   },
 });

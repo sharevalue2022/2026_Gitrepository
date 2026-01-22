@@ -17,6 +17,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { UserProfile } from "@/types";
 import { getUsers } from "@/lib/storage";
+import { calculateDiscoveryWeight } from "@/lib/profileCompleteness";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
 type AgeRange = "20~25" | "25~30" | "30~35" | "35~40" | null;
@@ -51,7 +52,10 @@ export default function DiscoverScreen() {
     }
     const targetGender = user.gender === "male" ? "female" : "male";
     const fetchedUsers = await getUsers(user.id, targetGender);
-    fetchedUsers.sort((a, b) => new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime());
+
+    // Sort by discovery weight (profile completeness + activity)
+    fetchedUsers.sort((a, b) => calculateDiscoveryWeight(b) - calculateDiscoveryWeight(a));
+
     setAllUsers(fetchedUsers);
     setIsLoading(false);
     setIsRefreshing(false);

@@ -18,6 +18,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/context/AuthContext";
 import { Spacing, BorderRadius, AppColors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
+import { calculateProfileCompleteness, getCompletenessMessage, getMissingFields } from "@/lib/profileCompleteness";
 
 export default function ProfileScreen() {
   const { theme, isDark } = useTheme();
@@ -53,6 +54,10 @@ export default function ProfileScreen() {
   };
 
   if (!user) return null;
+
+  const completenessScore = calculateProfileCompleteness(user);
+  const completenessMessage = getCompletenessMessage(completenessScore);
+  const missingFields = getMissingFields(user);
 
   return (
     <ScrollView
@@ -106,6 +111,88 @@ export default function ProfileScreen() {
           프로필 수정
         </Button>
       </Animated.View>
+
+      {/* Profile Completeness Card */}
+      {completenessScore < 100 && (
+        <Animated.View
+          entering={FadeInUp.delay(100).duration(500)}
+          style={[
+            styles.completenessCard,
+            {
+              backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.03)",
+              borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
+            },
+          ]}
+        >
+          <View style={styles.completenessHeader}>
+            <View style={styles.completenessIconContainer}>
+              <Feather name="trending-up" size={20} color={AppColors.primary} />
+            </View>
+            <View style={styles.completenessInfo}>
+              <ThemedText type="h4" style={styles.completenessTitle}>
+                프로필 완성도
+              </ThemedText>
+              <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                {completenessMessage}
+              </ThemedText>
+            </View>
+            <View style={styles.completenessScoreContainer}>
+              <ThemedText type="h3" style={{ color: AppColors.primary }}>
+                {completenessScore}%
+              </ThemedText>
+            </View>
+          </View>
+
+          {/* Progress Bar */}
+          <View style={[styles.progressBarContainer, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)" }]}>
+            <View
+              style={[
+                styles.progressBar,
+                {
+                  width: `${completenessScore}%`,
+                  backgroundColor: completenessScore >= 80 ? AppColors.success : completenessScore >= 60 ? AppColors.primary : AppColors.warning,
+                },
+              ]}
+            />
+          </View>
+
+          {/* Missing Fields */}
+          {missingFields.length > 0 && (
+            <View style={styles.missingFieldsContainer}>
+              <ThemedText type="small" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+                추가하면 좋은 정보:
+              </ThemedText>
+              <View style={styles.missingFieldsTags}>
+                {missingFields.slice(0, 3).map((field, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.missingFieldTag,
+                      { backgroundColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)" },
+                    ]}
+                  >
+                    <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                      {field}
+                    </ThemedText>
+                  </View>
+                ))}
+                {missingFields.length > 3 && (
+                  <View
+                    style={[
+                      styles.missingFieldTag,
+                      { backgroundColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)" },
+                    ]}
+                  >
+                    <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                      +{missingFields.length - 3}
+                    </ThemedText>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+        </Animated.View>
+      )}
 
       <Animated.View entering={FadeInUp.delay(100).duration(500)}>
         <ProfileSection title="소개">
@@ -551,5 +638,57 @@ const styles = StyleSheet.create({
   },
   membershipButton: {
     width: "100%",
+  },
+  completenessCard: {
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    padding: Spacing.lg,
+    marginBottom: Spacing.xl,
+  },
+  completenessHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: Spacing.md,
+  },
+  completenessIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(196, 168, 117, 0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: Spacing.md,
+  },
+  completenessInfo: {
+    flex: 1,
+  },
+  completenessTitle: {
+    marginBottom: 2,
+  },
+  completenessScoreContainer: {
+    alignItems: "flex-end",
+  },
+  progressBarContainer: {
+    height: 8,
+    borderRadius: BorderRadius.full,
+    overflow: "hidden",
+    marginBottom: Spacing.md,
+  },
+  progressBar: {
+    height: "100%",
+    borderRadius: BorderRadius.full,
+  },
+  missingFieldsContainer: {
+    marginTop: Spacing.sm,
+  },
+  missingFieldsTags: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.xs,
+  },
+  missingFieldTag: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.sm,
   },
 });
