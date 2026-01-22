@@ -1,49 +1,49 @@
-// Twilio SMS Integration for KingDate phone verification
-import twilio from 'twilio';
+// Solapi SMS Integration for KingDate phone verification
+import { SolapiMessageService } from 'solapi';
 
-function getTwilioCredentials() {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const phoneNumber = process.env.TWILIO_PHONE_NUMBER;
+function getSolapiCredentials() {
+  const apiKey = process.env.SOLAPI_API_KEY;
+  const apiSecret = process.env.SOLAPI_API_SECRET;
+  const fromNumber = process.env.SOLAPI_FROM_NUMBER;
 
-  if (!accountSid || !authToken || !phoneNumber) {
+  if (!apiKey || !apiSecret || !fromNumber) {
     throw new Error(
-      'Twilio credentials not set. Please set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER in .env file'
+      'Solapi credentials not set. Please set SOLAPI_API_KEY, SOLAPI_API_SECRET, and SOLAPI_FROM_NUMBER in .env file'
     );
   }
 
-  return { accountSid, authToken, phoneNumber };
+  return { apiKey, apiSecret, fromNumber };
 }
 
-export function getTwilioClient() {
-  const { accountSid, authToken } = getTwilioCredentials();
-  return twilio(accountSid, authToken);
+export function getSolapiClient() {
+  const { apiKey, apiSecret } = getSolapiCredentials();
+  return new SolapiMessageService(apiKey, apiSecret);
 }
 
-export function getTwilioFromPhoneNumber() {
-  const { phoneNumber } = getTwilioCredentials();
-  return phoneNumber;
+export function getSolapiFromPhoneNumber() {
+  const { fromNumber } = getSolapiCredentials();
+  return fromNumber;
 }
 
 export async function sendVerificationSMS(toPhoneNumber: string, code: string): Promise<boolean> {
   try {
-    const client = getTwilioClient();
-    const fromNumber = getTwilioFromPhoneNumber();
+    const client = getSolapiClient();
+    const fromNumber = getSolapiFromPhoneNumber();
 
     const formattedPhone = formatKoreanPhoneNumber(toPhoneNumber);
 
-    console.log(`[Twilio] Sending SMS to ${formattedPhone} from ${fromNumber}`);
+    console.log(`[Solapi] Sending SMS to ${formattedPhone} from ${fromNumber}`);
 
-    await client.messages.create({
-      body: `[킹데이트] 인증번호: ${code}\n5분 내로 입력해주세요.`,
+    await client.sendOne({
+      to: formattedPhone,
       from: fromNumber,
-      to: formattedPhone
+      text: `[킹데이트] 인증번호: ${code}\n5분 내로 입력해주세요.`
     });
 
-    console.log('[Twilio] SMS sent successfully');
+    console.log('[Solapi] SMS sent successfully');
     return true;
   } catch (error) {
-    console.error('[Twilio] SMS send error:', error);
+    console.error('[Solapi] SMS send error:', error);
     return false;
   }
 }
@@ -56,14 +56,20 @@ function formatKoreanPhoneNumber(phone: string): string {
   if (cleaned.startsWith('010') || cleaned.startsWith('011') ||
       cleaned.startsWith('016') || cleaned.startsWith('017') ||
       cleaned.startsWith('018') || cleaned.startsWith('019')) {
-    return '+82' + cleaned.substring(1);
+    // Solapi expects Korean numbers in 01XXXXXXXXX format (without +82)
+    return cleaned;
   }
 
-  // If already starts with 82 (country code)
+  // If starts with 82 (country code), remove it
   if (cleaned.startsWith('82')) {
-    return '+' + cleaned;
+    return '0' + cleaned.substring(2);
   }
 
-  // Otherwise, assume Korean number without prefix
-  return '+82' + cleaned;
+  // If starts with +82, remove it
+  if (phone.startsWith('+82')) {
+    return '0' + cleaned.substring(2);
+  }
+
+  // Otherwise, return as-is
+  return cleaned;
 }

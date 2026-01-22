@@ -24,8 +24,8 @@ KingDate는 한국 사용자를 위한 프리미엄 데이팅 플랫폼입니다
 ### Backend
 - **Runtime**: Node.js with Express 5
 - **Language**: TypeScript (ESM modules)
-- **Database**: PostgreSQL with Drizzle ORM
-- **SMS**: Twilio (전화 인증)
+- **Database**: PostgreSQL with Drizzle ORM (또는 인메모리 저장소)
+- **SMS**: 솔라피(Solapi) - 한국 전화 인증
 
 ## 시작하기
 
@@ -36,7 +36,7 @@ KingDate는 한국 사용자를 위한 프리미엄 데이팅 플랫폼입니다
 - PostgreSQL 데이터베이스 (선택사항)
 - Expo CLI
 - iOS Simulator (macOS) 또는 Android Emulator
-- Twilio 계정 (SMS 인증용, 선택사항)
+- 솔라피(Solapi) 계정 (SMS 인증용, 선택사항)
 
 ### 설치
 
@@ -68,10 +68,10 @@ EXPO_PUBLIC_DOMAIN=localhost:5000
 # PostgreSQL (선택사항 - 없으면 메모리 저장소 사용)
 DATABASE_URL=postgresql://username:password@localhost:5432/kingdate
 
-# Twilio (선택사항)
-TWILIO_ACCOUNT_SID=your_account_sid
-TWILIO_AUTH_TOKEN=your_auth_token
-TWILIO_PHONE_NUMBER=your_phone_number
+# Solapi SMS (선택사항 - 전화 인증용)
+SOLAPI_API_KEY=your_api_key
+SOLAPI_API_SECRET=your_api_secret
+SOLAPI_FROM_NUMBER=01012345678
 ```
 
 4. **데이터베이스 설정** (PostgreSQL 사용 시)
@@ -164,9 +164,9 @@ Expo 개발 서버가 시작되면:
 | `NODE_ENV` | 환경 (development/production) | development | 선택 |
 | `EXPO_PUBLIC_DOMAIN` | 클라이언트가 서버 API 호출 시 사용하는 도메인 | localhost:5000 | **필수** |
 | `DATABASE_URL` | PostgreSQL 연결 문자열 | - | 선택 |
-| `TWILIO_ACCOUNT_SID` | Twilio 계정 SID | - | 선택 |
-| `TWILIO_AUTH_TOKEN` | Twilio 인증 토큰 | - | 선택 |
-| `TWILIO_PHONE_NUMBER` | Twilio 전화번호 | - | 선택 |
+| `SOLAPI_API_KEY` | 솔라피 API Key | - | 선택 |
+| `SOLAPI_API_SECRET` | 솔라피 API Secret | - | 선택 |
+| `SOLAPI_FROM_NUMBER` | 솔라피 발신번호 (01012345678) | - | 선택 |
 
 ## Replit에서 실행하기
 
