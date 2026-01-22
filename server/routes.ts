@@ -767,80 +767,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Seed mock users to database
-  app.post("/api/admin/seed-mock-users", async (req, res) => {
-    try {
-      const femaleNames = ["소연", "지우", "민정", "유나", "하영", "수현", "은지", "다혜"];
-      const maleNames = ["준호", "민호", "서준", "태현", "우진", "현수", "지훈", "동우"];
-      const locations = ["서울", "부산", "인천", "대구", "대전", "광주"];
-      const occupations = ["디자이너", "엔지니어", "의사", "교사", "아티스트", "마케터", "금융인", "사업가"];
-      const hobbies = ["여행", "독서", "운동", "음악", "요리", "사진", "게임", "등산"];
-      const foods = ["한식", "일식", "양식", "태국음식", "커피", "와인", "디저트", "건강식"];
-
-      const createdUsers = [];
-      const hashedPassword = await bcrypt.hash("test1234", 10);
-
-      for (let i = 0; i < femaleNames.length; i++) {
-        const name = femaleNames[i];
-        const phoneNumber = `010${String(1000 + i).padStart(4, '0')}0001`;
-        
-        const existing = await storage.getUserByPhone(phoneNumber);
-        if (existing) continue;
-
-        const user = await storage.createUser({
-          phoneNumber,
-          passwordHash: hashedPassword,
-          name,
-          age: 22 + i,
-          gender: "female",
-          location: locations[i % locations.length],
-          occupation: occupations[i % occupations.length],
-          hobbies: hobbies.slice(0, 3),
-          foodPreferences: foods.slice(0, 2),
-          bio: "진정한 만남을 찾고 있어요.",
-          photos: [],
-          phoneVerified: true,
-        });
-        createdUsers.push(user);
-      }
-
-      for (let i = 0; i < maleNames.length; i++) {
-        const name = maleNames[i];
-        const phoneNumber = `010${String(2000 + i).padStart(4, '0')}0002`;
-        
-        const existing = await storage.getUserByPhone(phoneNumber);
-        if (existing) continue;
-
-        const user = await storage.createUser({
-          phoneNumber,
-          passwordHash: hashedPassword,
-          name,
-          age: 26 + i,
-          gender: "male",
-          location: locations[i % locations.length],
-          occupation: occupations[i % occupations.length],
-          hobbies: hobbies.slice(0, 3),
-          foodPreferences: foods.slice(0, 2),
-          bio: "새로운 인연을 기다리고 있습니다.",
-          photos: [],
-          phoneVerified: true,
-          isKingMember: true,
-          kingMembershipStartDate: new Date(),
-          kingMembershipExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-        });
-        createdUsers.push(user);
-      }
-
-      return res.json({ 
-        success: true, 
-        message: `${createdUsers.length}명의 테스트 사용자가 추가되었습니다.`,
-        count: createdUsers.length 
-      });
-    } catch (error) {
-      console.error("Seed mock users error:", error);
-      return res.status(500).json({ success: false, message: "서버 오류가 발생했습니다." });
-    }
-  });
-
   // Delete user (admin)
   app.delete("/api/admin/users/:userId", async (req, res) => {
     try {
@@ -860,25 +786,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Reset all data (admin only - for development/testing)
-  app.post("/api/admin/reset-all", async (req, res) => {
-    try {
-      // Only works with InMemoryStorage
-      if (typeof (storage as any).reset === 'function') {
-        (storage as any).reset();
-        console.log('[Admin] All data has been reset');
-        return res.json({ success: true, message: "모든 데이터가 초기화되었습니다." });
-      } else {
-        return res.status(400).json({
-          success: false,
-          message: "데이터베이스 모드에서는 초기화할 수 없습니다. InMemoryStorage만 지원합니다."
-        });
-      }
-    } catch (error) {
-      console.error("Reset all data error:", error);
-      return res.status(500).json({ success: false, message: "서버 오류가 발생했습니다." });
-    }
-  });
-
   // Admin login page
   app.get("/admin", (req, res) => {
     const loginTemplatePath = path.resolve(process.cwd(), "server", "templates", "admin-login.html");

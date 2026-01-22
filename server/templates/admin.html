@@ -650,14 +650,6 @@
           <button class="sub-tab" data-member-filter="suspended" onclick="setMemberFilter('suspended')">정지</button>
           <button class="sub-tab" data-member-filter="banned" onclick="setMemberFilter('banned')">영구 차단</button>
         </div>
-        <div style="margin: 20px 0; text-align: right; display: flex; gap: 12px; justify-content: flex-end;">
-          <button onclick="resetAllData()" style="background: linear-gradient(135deg, #f56565 0%, #c53030 100%); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: transform 0.2s;">
-            ⚠️ 모든 데이터 초기화
-          </button>
-          <button onclick="seedMockUsers()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: transform 0.2s;">
-            테스트 사용자 생성 (16명)
-          </button>
-        </div>
         <div class="stats" id="members-stats">
           <div class="stat-card">
             <div class="stat-label">전체 회원</div>
@@ -785,56 +777,6 @@
         }
       }
 
-      async function resetAllData() {
-        if (!confirm('⚠️ 경고: 모든 데이터(사용자, 메시지, 결제 요청)가 삭제됩니다.\n정말 초기화하시겠습니까?')) {
-          return;
-        }
-
-        try {
-          const response = await fetch('/api/admin/reset-all', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-          });
-          const data = await response.json();
-
-          if (data.success) {
-            alert(data.message);
-            // 모든 데이터 새로고침
-            await loadRequests();
-            await loadMembers();
-            await loadConversations();
-          } else {
-            alert('오류: ' + data.message);
-          }
-        } catch (error) {
-          console.error('Failed to reset data:', error);
-          alert('데이터 초기화 실패: ' + error.message);
-        }
-      }
-
-      async function seedMockUsers() {
-        if (!confirm('16명의 테스트 사용자를 생성하시겠습니까?\n(여성 8명, 남성 8명 - 킹 멤버십 포함)')) {
-          return;
-        }
-
-        try {
-          const response = await fetch('/api/admin/seed-mock-users', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-          });
-          const data = await response.json();
-
-          if (data.success) {
-            alert(data.message);
-            await loadMembers(); // 회원 목록 새로고침
-          } else {
-            alert('오류: ' + data.message);
-          }
-        } catch (error) {
-          console.error('Failed to seed mock users:', error);
-          alert('테스트 사용자 생성 실패: ' + error.message);
-        }
-      }
 
       function updateMemberStats() {
         const stats = {
