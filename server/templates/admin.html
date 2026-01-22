@@ -650,6 +650,11 @@
           <button class="sub-tab" data-member-filter="suspended" onclick="setMemberFilter('suspended')">정지</button>
           <button class="sub-tab" data-member-filter="banned" onclick="setMemberFilter('banned')">영구 차단</button>
         </div>
+        <div style="margin: 20px 0; text-align: right;">
+          <button onclick="seedMockUsers()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: transform 0.2s;">
+            테스트 사용자 생성 (16명)
+          </button>
+        </div>
         <div class="stats" id="members-stats">
           <div class="stat-card">
             <div class="stat-label">전체 회원</div>
@@ -764,7 +769,7 @@
         try {
           const response = await fetch('/api/admin/members');
           const data = await response.json();
-          
+
           if (data.success) {
             allMembers = data.members;
             updateMemberStats();
@@ -772,8 +777,32 @@
           }
         } catch (error) {
           console.error('Failed to load members:', error);
-          document.getElementById('members-list').innerHTML = 
+          document.getElementById('members-list').innerHTML =
             '<div class="empty-state"><h3>데이터를 불러올 수 없습니다</h3><p>서버 연결을 확인해주세요.</p></div>';
+        }
+      }
+
+      async function seedMockUsers() {
+        if (!confirm('16명의 테스트 사용자를 생성하시겠습니까?\n(여성 8명, 남성 8명 - 킹 멤버십 포함)')) {
+          return;
+        }
+
+        try {
+          const response = await fetch('/api/admin/seed-mock-users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          const data = await response.json();
+
+          if (data.success) {
+            alert(data.message);
+            await loadMembers(); // 회원 목록 새로고침
+          } else {
+            alert('오류: ' + data.message);
+          }
+        } catch (error) {
+          console.error('Failed to seed mock users:', error);
+          alert('테스트 사용자 생성 실패: ' + error.message);
         }
       }
 
