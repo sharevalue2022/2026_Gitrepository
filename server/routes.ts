@@ -825,6 +825,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           phoneVerified: true,
           isKingMember: true,
           kingMembershipStartDate: new Date(),
+          kingMembershipExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
         });
         createdUsers.push(user);
       }
