@@ -4,13 +4,18 @@ import * as schema from "@shared/schema";
 
 const { Pool } = pg;
 
+let pool: any = null;
+let db: any = null;
+
 if (!process.env.DATABASE_URL) {
   console.log("DATABASE_URL not set - using in-memory storage (data will not persist)");
   // Will use InMemoryStorage from storage.ts
-  export const pool = null;
-  export const db = null as any;
+  pool = null;
+  db = null;
 } else {
   console.log("Using PostgreSQL database");
-  export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  export const db = drizzle(pool, { schema });
+  pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  db = drizzle(pool, { schema });
 }
+
+export { pool, db };
