@@ -800,6 +800,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Report user
+  app.post("/api/reports", async (req, res) => {
+    try {
+      const { reporterId, reportedUserId, reason, description } = req.body;
+
+      if (!reporterId || !reportedUserId || !reason) {
+        return res.status(400).json({ success: false, message: "필수 정보가 누락되었습니다." });
+      }
+
+      const report = await storage.createReport({
+        reporterId,
+        reportedUserId,
+        reason,
+        description: description || null,
+      });
+
+      // Get updated report count
+      const reportedUser = await storage.getUser(reportedUserId);
+      const reportCount = reportedUser?.reportCount || 0;
+
+      // Auto-moderation logic
+      if (reportCount === 3) {
+        console.log(`[Auto-Moderation] User ${reportedUserId} received warning (3 reports)`);
+      } else if (reportCount >= 5) {
+        await storage.updateUser(reportedUserId, {
+          isSuspended: true,
+          suspendedAt: new Date(),
+          suspendedReason: `신고 누적 ${reportCount}회로 인한 자동 정지 (7일)`,
+        });
+        console.log(`[Auto-Moderation] User ${reportedUserId} suspended for 7 days (${reportCount} reports)`);
+      }
+
+      return res.json({ success: true, report, reportCount });
+    } catch (error) {
+      console.error("Report user error:", error);
+      return res.status(500).json({ success: false, message: "서버 오류가 발생했습니다." });
+    }
+  });
+
+  // Block user
+  app.post("/api/blocks", async (req, res) => {
+    try {
+      const { blockerId, blockedUserId } = req.body;
+
+      if (!blockerId || !blockedUserId) {
+        return res.status(400).json({ success: false, message: "필수 정보가 누락되었습니다." });
+      }
+
+      const block = await storage.createBlock({
+        blockerId,
+        blockedUserId,
+      });
+
+      return res.json({ success: true, block });
+    } catch (error) {
+      console.error("Block user error:", error);
+      return res.status(500).json({ success: false, message: "서버 오류가 발생했습니다." });
+    }
+  });
+
+  // Check if blocked
+  app.get("/api/blocks/check", async (req, res) => {
+    try {
+      const { userId, otherUserId } = req.query;
+
+      if (!userId || !otherUserId) {
+        return res.status(400).json({ success: false, message: "필수 정보가 누락되었습니다." });
+      }
+
+      const isBlockedByMe = await storage.isUserBlocked(userId as string, otherUserId as string);
+      const hasBlockedMe = await storage.isUserBlocked(otherUserId as string, userId as string);
+
+      return res.json({
+        success: true,
+        isBlockedByMe, // Current user blocked the other user
+        hasBlockedMe, // Other user blocked current user
+      });
+    } catch (error) {
+      console.error("Check block error:", error);
+      return res.status(500).json({ success: false, message: "서버 오류가 발생했습니다." });
+    }
+  });
+
   // Seed mock users to database
   // Delete user (admin)
   app.delete("/api/admin/users/:userId", async (req, res) => {

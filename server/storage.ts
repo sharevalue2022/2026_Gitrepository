@@ -33,6 +33,7 @@ export interface IStorage {
   getReportsByUserId(userId: string): Promise<Report[]>;
   createBlock(block: InsertBlock): Promise<Block>;
   getBlocksByUserId(userId: string): Promise<Block[]>;
+  isUserBlocked(blockerId: string, blockedUserId: string): Promise<boolean>;
   getRiskyUsers(): Promise<(User & { reportCount: number; blockCount: number })[]>;
 
   getDashboardKPI(): Promise<{
@@ -345,6 +346,15 @@ export class DatabaseStorage implements IStorage {
 
   async getBlocksByUserId(userId: string): Promise<Block[]> {
     return await db.select().from(blocks).where(eq(blocks.blockedUserId, userId));
+  }
+
+  async isUserBlocked(blockerId: string, blockedUserId: string): Promise<boolean> {
+    const [block] = await db.select().from(blocks)
+      .where(and(
+        eq(blocks.blockerId, blockerId),
+        eq(blocks.blockedUserId, blockedUserId)
+      ));
+    return !!block;
   }
 
   async getRiskyUsers(): Promise<(User & { reportCount: number; blockCount: number })[]> {
@@ -728,6 +738,11 @@ class InMemoryStorage implements IStorage {
         blockCount: u.blockCount || 0,
       }))
       .sort((a, b) => (b.reportCount + b.blockCount) - (a.reportCount + a.blockCount));
+  }
+
+  async isUserBlocked(blockerId: string, blockedUserId: string): Promise<boolean> {
+    const blocks = Array.from(this.blocks.values());
+    return blocks.some(b => b.blockerId === blockerId && b.blockedUserId === blockedUserId);
   }
 
   async getDashboardKPI(): Promise<{
