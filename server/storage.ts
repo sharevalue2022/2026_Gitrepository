@@ -34,6 +34,15 @@ export interface IStorage {
   createBlock(block: InsertBlock): Promise<Block>;
   getBlocksByUserId(userId: string): Promise<Block[]>;
   getRiskyUsers(): Promise<(User & { reportCount: number; blockCount: number })[]>;
+
+  getDashboardKPI(): Promise<{
+    activeMaleUsers: number;
+    activeFemaleUsers: number;
+    pendingPayments: number;
+    newPaidConversionsThisMonth: number;
+    expiringUsersIn7Days: number;
+    genderRatioHistory: { date: string; maleCount: number; femaleCount: number }[];
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -352,6 +361,92 @@ export class DatabaseStorage implements IStorage {
       blockCount: u.blockCount || 0,
     }));
   }
+
+  async getDashboardKPI(): Promise<{
+    activeMaleUsers: number;
+    activeFemaleUsers: number;
+    pendingPayments: number;
+    newPaidConversionsThisMonth: number;
+    expiringUsersIn7Days: number;
+    genderRatioHistory: { date: string; maleCount: number; femaleCount: number }[];
+  }> {
+    const now = new Date();
+    const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Active male users
+    const maleUsers = await db.select().from(users)
+      .where(and(
+        eq(users.gender, 'male'),
+        eq(users.isBanned, false),
+        eq(users.isSuspended, false)
+      ));
+    const activeMaleUsers = maleUsers.length;
+
+    // Active female users
+    const femaleUsers = await db.select().from(users)
+      .where(and(
+        eq(users.gender, 'female'),
+        eq(users.isBanned, false),
+        eq(users.isSuspended, false)
+      ));
+    const activeFemaleUsers = femaleUsers.length;
+
+    // Pending payments
+    const pendingRequests = await db.select().from(paymentRequests)
+      .where(eq(paymentRequests.status, 'pending'));
+    const pendingPayments = pendingRequests.length;
+
+    // New paid conversions this month
+    const newConversions = await db.select().from(users)
+      .where(and(
+        eq(users.isKingMember, true),
+        sql`${users.kingMembershipStartDate} >= ${startOfMonth}`
+      ));
+    const newPaidConversionsThisMonth = newConversions.length;
+
+    // Expiring users in 7 days
+    const allUsers = await db.select().from(users);
+    const expiringUsers = allUsers.filter(user => {
+      if (!user.isKingMember || !user.kingMembershipStartDate) return false;
+      const expiryDate = new Date(user.kingMembershipStartDate);
+      expiryDate.setDate(expiryDate.getDate() + 30);
+      return expiryDate >= now && expiryDate <= sevenDaysFromNow;
+    });
+    const expiringUsersIn7Days = expiringUsers.length;
+
+    // Gender ratio history (last 30 days)
+    const genderRatioHistory = [];
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      date.setHours(0, 0, 0, 0);
+
+      const nextDate = new Date(date);
+      nextDate.setDate(nextDate.getDate() + 1);
+
+      const dayUsers = await db.select().from(users)
+        .where(sql`${users.createdAt} < ${nextDate}`);
+
+      const maleCount = dayUsers.filter(u => u.gender === 'male').length;
+      const femaleCount = dayUsers.filter(u => u.gender === 'female').length;
+
+      genderRatioHistory.push({
+        date: date.toISOString().split('T')[0],
+        maleCount,
+        femaleCount,
+      });
+    }
+
+    return {
+      activeMaleUsers,
+      activeFemaleUsers,
+      pendingPayments,
+      newPaidConversionsThisMonth,
+      expiringUsersIn7Days,
+      genderRatioHistory,
+    };
+  }
 }
 
 // In-memory storage implementation (for when DATABASE_URL is not set)
@@ -633,6 +728,84 @@ class InMemoryStorage implements IStorage {
         blockCount: u.blockCount || 0,
       }))
       .sort((a, b) => (b.reportCount + b.blockCount) - (a.reportCount + a.blockCount));
+  }
+
+  async getDashboardKPI(): Promise<{
+    activeMaleUsers: number;
+    activeFemaleUsers: number;
+    pendingPayments: number;
+    newPaidConversionsThisMonth: number;
+    expiringUsersIn7Days: number;
+    genderRatioHistory: { date: string; maleCount: number; femaleCount: number }[];
+  }> {
+    const now = new Date();
+    const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const allUsers = Array.from(this.users.values());
+    const allPaymentRequests = Array.from(this.paymentRequests.values());
+
+    // Active male users
+    const activeMaleUsers = allUsers.filter(u =>
+      u.gender === 'male' && !u.isBanned && !u.isSuspended
+    ).length;
+
+    // Active female users
+    const activeFemaleUsers = allUsers.filter(u =>
+      u.gender === 'female' && !u.isBanned && !u.isSuspended
+    ).length;
+
+    // Pending payments
+    const pendingPayments = allPaymentRequests.filter(r => r.status === 'pending').length;
+
+    // New paid conversions this month
+    const newPaidConversionsThisMonth = allUsers.filter(u => {
+      if (!u.isKingMember || !u.kingMembershipStartDate) return false;
+      const startDate = new Date(u.kingMembershipStartDate);
+      return startDate >= startOfMonth;
+    }).length;
+
+    // Expiring users in 7 days
+    const expiringUsersIn7Days = allUsers.filter(u => {
+      if (!u.isKingMember || !u.kingMembershipStartDate) return false;
+      const expiryDate = new Date(u.kingMembershipStartDate);
+      expiryDate.setDate(expiryDate.getDate() + 30);
+      return expiryDate >= now && expiryDate <= sevenDaysFromNow;
+    }).length;
+
+    // Gender ratio history (last 30 days)
+    const genderRatioHistory = [];
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      date.setHours(0, 0, 0, 0);
+
+      const nextDate = new Date(date);
+      nextDate.setDate(nextDate.getDate() + 1);
+
+      const dayUsers = allUsers.filter(u => {
+        const createdAt = new Date(u.createdAt!);
+        return createdAt < nextDate;
+      });
+
+      const maleCount = dayUsers.filter(u => u.gender === 'male').length;
+      const femaleCount = dayUsers.filter(u => u.gender === 'female').length;
+
+      genderRatioHistory.push({
+        date: date.toISOString().split('T')[0],
+        maleCount,
+        femaleCount,
+      });
+    }
+
+    return {
+      activeMaleUsers,
+      activeFemaleUsers,
+      pendingPayments,
+      newPaidConversionsThisMonth,
+      expiringUsersIn7Days,
+      genderRatioHistory,
+    };
   }
 
   // Reset all data (for testing/development)

@@ -789,6 +789,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get dashboard KPI (admin)
+  app.get("/api/admin/dashboard-kpi", async (req, res) => {
+    try {
+      const kpi = await storage.getDashboardKPI();
+      return res.json({ success: true, kpi });
+    } catch (error) {
+      console.error("Get dashboard KPI error:", error);
+      return res.status(500).json({ success: false, message: "서버 오류가 발생했습니다." });
+    }
+  });
+
   // Seed mock users to database
   // Delete user (admin)
   app.delete("/api/admin/users/:userId", async (req, res) => {
