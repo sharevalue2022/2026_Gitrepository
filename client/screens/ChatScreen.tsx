@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
-import { StyleSheet, View, TextInput, Pressable, FlatList, Image } from "react-native";
+import { StyleSheet, View, TextInput, Pressable, FlatList, Image, Modal, ScrollView, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { RouteProp, useRoute } from "@react-navigation/native";
@@ -10,6 +10,8 @@ import * as Haptics from "expo-haptics";
 import { BlurView } from "expo-blur";
 
 import { ThemedText } from "@/components/ThemedText";
+import { Button } from "@/components/Button";
+import { Input } from "@/components/Input";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigation } from "@react-navigation/native";
@@ -17,6 +19,16 @@ import { Spacing, BorderRadius, AppColors } from "@/constants/theme";
 import { Message, Conversation } from "@/types";
 import { getMessages, addMessage, updateConversationLastMessage, getConversations } from "@/lib/storage";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
+import { getApiUrl } from "@/lib/query-client";
+
+const REPORT_REASONS = [
+  { id: "abuse", label: "욕설/비방" },
+  { id: "spam", label: "스팸/광고" },
+  { id: "photo_request", label: "사진 요구" },
+  { id: "scam", label: "사기 의심" },
+  { id: "harassment", label: "성적 괴롭힘" },
+  { id: "other", label: "기타" },
+];
 
 export default function ChatScreen() {
   const route = useRoute<RouteProp<RootStackParamList, "Chat">>();
@@ -30,6 +42,12 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
   const [conversation, setConversation] = useState<Conversation | null>(null);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [selectedReason, setSelectedReason] = useState("");
+  const [otherDescription, setOtherDescription] = useState("");
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [hasBlockedMe, setHasBlockedMe] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   const loadMessages = useCallback(async () => {
@@ -43,18 +61,59 @@ export default function ChatScreen() {
     if (conv) setConversation(conv);
   }, [conversationId]);
 
+  const checkBlockStatus = useCallback(async () => {
+    if (!user || !conversation) return;
+
+    try {
+      const response = await fetch(
+        new URL(\`/api/blocks/check?userId=\${user.id}&otherUserId=\${conversation.participantId}\`, getApiUrl()).href
+      );
+      const data = await response.json();
+      if (data.success) {
+        setIsBlocked(data.isBlockedByMe);
+        setHasBlockedMe(data.hasBlockedMe);
+      }
+    } catch (error) {
+      console.error("Failed to check block status:", error);
+    }
+  }, [user, conversation]);
+
   useEffect(() => {
     loadMessages();
     loadConversation();
   }, [loadMessages, loadConversation]);
 
+  useEffect(() => {
+    checkBlockStatus();
+  }, [checkBlockStatus]);
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setShowMenu(true);
+          }}
+          style={{ marginRight: Spacing.md }}
+        >
+          <Feather name="more-vertical" size={24} color={theme.text} />
+        </Pressable>
+      ),
+    });
+  }, [navigation, theme]);
+
   const handleSend = async () => {
     if (!inputText.trim() || !user) return;
+    if (hasBlockedMe) {
+      Alert.alert("메시지 전송 불가", "상대방이 대화를 차단했습니다.");
+      return;
+    }
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     const newMessage: Message = {
-      id: `msg_${Date.now()}`,
+      id: \`msg_\${Date.now()}\`,
       conversationId,
       senderId: user.id,
       text: inputText.trim(),
@@ -66,17 +125,96 @@ export default function ChatScreen() {
     setInputText("");
 
     await addMessage(
-      conversationId, 
-      newMessage, 
+      conversationId,
+      newMessage,
       conversation?.participantId,
       conversation?.serverConversationId
     );
     await updateConversationLastMessage(conversationId, newMessage.text);
   };
 
+  const handleReport = async () => {
+    if (!selectedReason || !user || !conversation) return;
+
+    if (selectedReason === "other" && !otherDescription.trim()) {
+      Alert.alert("알림", "기타 사유를 입력해주세요.");
+      return;
+    }
+
+    try {
+      const response = await fetch(new URL("/api/reports", getApiUrl()).href, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reporterId: user.id,
+          reportedUserId: conversation.participantId,
+          reason: REPORT_REASONS.find(r => r.id === selectedReason)?.label || selectedReason,
+          description: selectedReason === "other" ? otherDescription : null,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        Alert.alert("신고 완료", "신고가 접수되었습니다. 관리자가 확인 후 조치하겠습니다.");
+        setShowReportModal(false);
+        setShowMenu(false);
+        setSelectedReason("");
+        setOtherDescription("");
+      } else {
+        Alert.alert("오류", data.message || "신고 처리 중 오류가 발생했습니다.");
+      }
+    } catch (error) {
+      console.error("Report error:", error);
+      Alert.alert("오류", "신고 처리 중 오류가 발생했습니다.");
+    }
+  };
+
+  const handleBlock = async () => {
+    if (!user || !conversation) return;
+
+    Alert.alert(
+      "차단하기",
+      "이 사용자를 차단하시겠습니까? 차단하면 더 이상 메시지를 주고받을 수 없습니다.",
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "차단",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const response = await fetch(new URL("/api/blocks", getApiUrl()).href, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  blockerId: user.id,
+                  blockedUserId: conversation.participantId,
+                }),
+              });
+
+              const data = await response.json();
+
+              if (data.success) {
+                setIsBlocked(true);
+                setShowMenu(false);
+                Alert.alert("차단 완료", "사용자를 차단했습니다.");
+                navigation.goBack();
+              } else {
+                Alert.alert("오류", data.message || "차단 처리 중 오류가 발생했습니다.");
+              }
+            } catch (error) {
+              console.error("Block error:", error);
+              Alert.alert("오류", "차단 처리 중 오류가 발생했습니다.");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
     const isOwn = item.senderId === user?.id;
-    const showTimestamp = index === messages.length - 1 || 
+    const showTimestamp = index === messages.length - 1 ||
       new Date(messages[index + 1]?.timestamp).getTime() - new Date(item.timestamp).getTime() > 300000;
 
     return (
@@ -124,18 +262,34 @@ export default function ChatScreen() {
     );
   };
 
-  const renderEmpty = () => (
-    <View style={styles.emptyContainer}>
-      <Image
-        source={require("../../assets/images/empty-messages.png")}
-        style={styles.emptyImage}
-        resizeMode="contain"
-      />
-      <ThemedText type="body" style={{ color: theme.textSecondary, textAlign: "center" }}>
-        메시지를 보내 대화를 시작해보세요
-      </ThemedText>
-    </View>
-  );
+  const renderEmpty = () => {
+    if (hasBlockedMe) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Feather name="slash" size={48} color={theme.textSecondary} />
+          <ThemedText type="h3" style={{ marginTop: Spacing.lg, marginBottom: Spacing.sm }}>
+            대화가 끊겼습니다
+          </ThemedText>
+          <ThemedText type="body" style={{ color: theme.textSecondary, textAlign: "center" }}>
+            상대방이 대화를 차단했습니다
+          </ThemedText>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.emptyContainer}>
+        <Image
+          source={require("../../assets/images/empty-messages.png")}
+          style={styles.emptyImage}
+          resizeMode="contain"
+        />
+        <ThemedText type="body" style={{ color: theme.textSecondary, textAlign: "center" }}>
+          메시지를 보내 대화를 시작해보세요
+        </ThemedText>
+      </View>
+    );
+  };
 
   return (
     <KeyboardAvoidingView
@@ -168,7 +322,7 @@ export default function ChatScreen() {
           { paddingBottom: insets.bottom + Spacing.sm },
         ]}
       >
-        {canSendMessages ? (
+        {canSendMessages && !hasBlockedMe && !isBlocked ? (
           <View style={[styles.inputWrapper, { backgroundColor: theme.backgroundDefault }]}>
             <TextInput
               style={[styles.input, { color: theme.text }]}
@@ -197,6 +351,20 @@ export default function ChatScreen() {
               />
             </Pressable>
           </View>
+        ) : hasBlockedMe ? (
+          <View style={[styles.membershipRequired, { backgroundColor: theme.backgroundSecondary }]}>
+            <Feather name="slash" size={16} color={theme.textSecondary} />
+            <ThemedText type="small" style={{ color: theme.textSecondary, marginLeft: Spacing.sm, flex: 1 }}>
+              상대방이 대화를 차단했습니다
+            </ThemedText>
+          </View>
+        ) : isBlocked ? (
+          <View style={[styles.membershipRequired, { backgroundColor: theme.backgroundSecondary }]}>
+            <Feather name="slash" size={16} color={theme.textSecondary} />
+            <ThemedText type="small" style={{ color: theme.textSecondary, marginLeft: Spacing.sm, flex: 1 }}>
+              차단한 사용자입니다
+            </ThemedText>
+          </View>
         ) : (
           <Pressable
             onPress={() => {
@@ -220,6 +388,123 @@ export default function ChatScreen() {
           </Pressable>
         )}
       </BlurView>
+
+      {/* Menu Modal */}
+      <Modal
+        visible={showMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowMenu(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setShowMenu(false)}
+        >
+          <Pressable
+            style={[styles.menuContainer, { backgroundColor: theme.backgroundDefault }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Pressable
+              style={[styles.menuItem, { borderBottomColor: theme.border }]}
+              onPress={() => {
+                setShowMenu(false);
+                setShowReportModal(true);
+              }}
+            >
+              <Feather name="flag" size={20} color={AppColors.warning} />
+              <ThemedText type="body" style={{ marginLeft: Spacing.md, color: AppColors.warning }}>
+                신고하기
+              </ThemedText>
+            </Pressable>
+            <Pressable
+              style={styles.menuItem}
+              onPress={handleBlock}
+            >
+              <Feather name="slash" size={20} color={AppColors.error} />
+              <ThemedText type="body" style={{ marginLeft: Spacing.md, color: AppColors.error }}>
+                차단하기
+              </ThemedText>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Report Modal */}
+      <Modal
+        visible={showReportModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowReportModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.reportContainer, { backgroundColor: theme.backgroundDefault }]}>
+            <View style={styles.modalHeader}>
+              <ThemedText type="h3">신고하기</ThemedText>
+              <Pressable onPress={() => setShowReportModal(false)}>
+                <Feather name="x" size={24} color={theme.text} />
+              </Pressable>
+            </View>
+
+            <ScrollView style={styles.reasonList} showsVerticalScrollIndicator={false}>
+              <ThemedText type="body" style={{ marginBottom: Spacing.md, color: theme.textSecondary }}>
+                신고 사유를 선택해주세요
+              </ThemedText>
+              {REPORT_REASONS.map((reason) => (
+                <Pressable
+                  key={reason.id}
+                  style={[
+                    styles.reasonItem,
+                    {
+                      backgroundColor: selectedReason === reason.id ? AppColors.accent + "20" : theme.backgroundSecondary,
+                      borderColor: selectedReason === reason.id ? AppColors.accent : theme.border,
+                    },
+                  ]}
+                  onPress={() => setSelectedReason(reason.id)}
+                >
+                  <View style={[
+                    styles.radioButton,
+                    { borderColor: selectedReason === reason.id ? AppColors.accent : theme.textSecondary }
+                  ]}>
+                    {selectedReason === reason.id && (
+                      <View style={[styles.radioButtonInner, { backgroundColor: AppColors.accent }]} />
+                    )}
+                  </View>
+                  <ThemedText type="body">{reason.label}</ThemedText>
+                </Pressable>
+              ))}
+
+              {selectedReason === "other" && (
+                <Input
+                  label="기타 사유"
+                  placeholder="자세한 사유를 입력해주세요"
+                  value={otherDescription}
+                  onChangeText={setOtherDescription}
+                  multiline
+                  numberOfLines={3}
+                  style={{ marginTop: Spacing.md }}
+                />
+              )}
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <Button
+                onPress={() => setShowReportModal(false)}
+                variant="outline"
+                style={{ flex: 1, marginRight: Spacing.sm }}
+              >
+                취소
+              </Button>
+              <Button
+                onPress={handleReport}
+                disabled={!selectedReason}
+                style={{ flex: 1 }}
+              >
+                신고하기
+              </Button>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -234,6 +519,17 @@ const styles = StyleSheet.create({
   },
   emptyList: {
     justifyContent: "center",
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: Spacing.xl,
+  },
+  emptyImage: {
+    width: 200,
+    height: 200,
+    marginBottom: Spacing.lg,
   },
   messageWrapper: {
     marginBottom: Spacing.sm,
@@ -256,10 +552,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: Spacing.xs,
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   timestamp: {
-    fontSize: 11,
+    fontSize: 10,
   },
   readStatus: {
     flexDirection: "row",
@@ -268,37 +564,24 @@ const styles = StyleSheet.create({
   unreadText: {
     fontSize: 10,
   },
-  emptyContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: Spacing["4xl"],
-  },
-  emptyImage: {
-    width: 120,
-    height: 120,
-    marginBottom: Spacing.lg,
-    opacity: 0.7,
-  },
   inputContainer: {
-    paddingTop: Spacing.sm,
     paddingHorizontal: Spacing.lg,
-    overflow: "hidden",
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.1)",
   },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "flex-end",
     borderRadius: BorderRadius.lg,
-    paddingLeft: Spacing.lg,
-    paddingRight: Spacing.xs,
-    paddingVertical: Spacing.xs,
-    minHeight: 44,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    gap: Spacing.sm,
   },
   input: {
     flex: 1,
-    fontSize: 16,
-    lineHeight: 22,
     maxHeight: 100,
-    paddingVertical: Spacing.sm,
+    fontSize: 15,
   },
   sendButton: {
     width: 36,
@@ -310,7 +593,70 @@ const styles = StyleSheet.create({
   membershipRequired: {
     flexDirection: "row",
     alignItems: "center",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  menuContainer: {
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+    paddingVertical: Spacing.lg,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    borderBottomWidth: 1,
+  },
+  reportContainer: {
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+    maxHeight: "80%",
+    paddingBottom: Spacing.xl,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255, 255, 255, 0.1)",
+  },
+  reasonList: {
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.lg,
+  },
+  reasonItem: {
+    flexDirection: "row",
+    alignItems: "center",
     padding: Spacing.lg,
     borderRadius: BorderRadius.md,
+    marginBottom: Spacing.sm,
+    borderWidth: 2,
+  },
+  radioButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    marginRight: Spacing.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  radioButtonInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  modalFooter: {
+    flexDirection: "row",
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.lg,
   },
 });
