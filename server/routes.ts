@@ -851,6 +851,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Auto-moderation logic
       if (reportCount === 3) {
         console.log(`[Auto-Moderation] User ${reportedUserId} received warning (3 reports)`);
+
+        // Send warning SMS
+        if (reportedUser?.phoneNumber) {
+          try {
+            const { sendSMS } = await import("./lib/twilio.js");
+            await sendSMS(
+              reportedUser.phoneNumber,
+              `[킹데이트 경고]\n신고 누적 3회로 인한 경고입니다.\n2회 추가 신고 시 계정이 7일간 정지됩니다.\n커뮤니티 가이드를 준수해주세요.`
+            );
+            console.log(`[Auto-Moderation] Warning SMS sent to ${reportedUser.phoneNumber}`);
+          } catch (smsError) {
+            console.error("[Auto-Moderation] Failed to send warning SMS:", smsError);
+          }
+        }
       } else if (reportCount >= 5) {
         await storage.updateUser(reportedUserId, {
           isSuspended: true,
@@ -858,6 +872,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           suspendedReason: `신고 누적 ${reportCount}회로 인한 자동 정지 (7일)`,
         });
         console.log(`[Auto-Moderation] User ${reportedUserId} suspended for 7 days (${reportCount} reports)`);
+
+        // Send suspension notification SMS
+        if (reportedUser?.phoneNumber) {
+          try {
+            const { sendSMS } = await import("./lib/twilio.js");
+            await sendSMS(
+              reportedUser.phoneNumber,
+              `[킹데이트 알림]\n신고 누적 ${reportCount}회로 인해 계정이 7일간 정지되었습니다.\n정지 기간: ${new Date().toLocaleDateString('ko-KR')} ~ ${new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('ko-KR')}`
+            );
+            console.log(`[Auto-Moderation] Suspension SMS sent to ${reportedUser.phoneNumber}`);
+          } catch (smsError) {
+            console.error("[Auto-Moderation] Failed to send suspension SMS:", smsError);
+          }
+        }
       }
 
       return res.json({ success: true, report, reportCount });

@@ -48,6 +48,29 @@ export async function sendVerificationSMS(toPhoneNumber: string, code: string): 
   }
 }
 
+export async function sendSMS(toPhoneNumber: string, message: string): Promise<boolean> {
+  try {
+    const client = getSolapiClient();
+    const fromNumber = getSolapiFromPhoneNumber();
+
+    const formattedPhone = formatKoreanPhoneNumber(toPhoneNumber);
+
+    console.log(`[Solapi] Sending SMS to ${formattedPhone} from ${fromNumber}`);
+
+    await client.sendOne({
+      to: formattedPhone,
+      from: fromNumber,
+      text: message
+    });
+
+    console.log('[Solapi] SMS sent successfully');
+    return true;
+  } catch (error) {
+    console.error('[Solapi] SMS send error:', error);
+    return false;
+  }
+}
+
 function formatKoreanPhoneNumber(phone: string): string {
   // Remove all non-digit characters
   const cleaned = phone.replace(/\D/g, '');
