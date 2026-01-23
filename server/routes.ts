@@ -809,11 +809,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ success: false, message: "필수 정보가 누락되었습니다." });
       }
 
+      // Capture message snapshot (last 10 messages in conversation)
+      let messageSnapshot = null;
+      try {
+        const conversation = await storage.getConversationByUsers(reporterId, reportedUserId);
+        if (conversation) {
+          const messages = await storage.getMessages(conversation.id);
+          const recentMessages = messages.slice(-10); // Get last 10 messages
+
+          // Format messages for snapshot
+          messageSnapshot = await Promise.all(
+            recentMessages.map(async (msg) => {
+              const sender = await storage.getUser(msg.senderId);
+              return {
+                id: msg.id,
+                senderId: msg.senderId,
+                senderName: sender?.name || "Unknown",
+                content: msg.content,
+                createdAt: msg.createdAt,
+              };
+            })
+          );
+        }
+      } catch (snapshotError) {
+        console.error("[Report] Failed to capture message snapshot:", snapshotError);
+        // Continue even if snapshot fails
+      }
+
       const report = await storage.createReport({
         reporterId,
         reportedUserId,
         reason,
         description: description || null,
+        messageSnapshot,
       });
 
       // Get updated report count
@@ -879,6 +907,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Check block error:", error);
+      return res.status(500).json({ success: false, message: "서버 오류가 발생했습니다." });
+    }
+  });
+
+  // Get all reports (admin)
+  app.get("/api/admin/reports", async (req, res) => {
+    try {
+      const allReports = await storage.getAllReports();
+
+      // Format reports with user information
+      const reportsWithUsers = await Promise.all(
+        allReports.map(async (report) => {
+          const reporter = await storage.getUser(report.reporterId);
+          const reportedUser = await storage.getUser(report.reportedUserId);
+
+          return {
+            ...report,
+            reporter: reporter ? {
+              id: reporter.id,
+              name: reporter.name,
+              phoneNumber: reporter.phoneNumber,
+              gender: reporter.gender,
+              age: reporter.age,
+            } : null,
+            reportedUser: reportedUser ? {
+              id: reportedUser.id,
+              name: reportedUser.name,
+              phoneNumber: reportedUser.phoneNumber,
+              gender: reportedUser.gender,
+              age: reportedUser.age,
+              reportCount: reportedUser.reportCount,
+              blockCount: reportedUser.blockCount,
+              isSuspended: reportedUser.isSuspended,
+              isBanned: reportedUser.isBanned,
+            } : null,
+          };
+        })
+      );
+
+      return res.json({ success: true, reports: reportsWithUsers });
+    } catch (error) {
+      console.error("Get reports error:", error);
       return res.status(500).json({ success: false, message: "서버 오류가 발생했습니다." });
     }
   });

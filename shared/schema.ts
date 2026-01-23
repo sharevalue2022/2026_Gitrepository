@@ -129,6 +129,13 @@ export const reports = pgTable("reports", {
   reportedUserId: varchar("reported_user_id").notNull().references(() => users.id),
   reason: text("reason").notNull(),
   description: text("description"),
+  messageSnapshot: jsonb("message_snapshot").$type<Array<{
+    id: string;
+    senderId: string;
+    senderName: string;
+    content: string;
+    createdAt: Date;
+  }>>(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

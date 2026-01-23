@@ -31,6 +31,7 @@ export interface IStorage {
 
   createReport(report: InsertReport): Promise<Report>;
   getReportsByUserId(userId: string): Promise<Report[]>;
+  getAllReports(): Promise<Report[]>;
   createBlock(block: InsertBlock): Promise<Block>;
   getBlocksByUserId(userId: string): Promise<Block[]>;
   isUserBlocked(blockerId: string, blockedUserId: string): Promise<boolean>;
@@ -331,6 +332,10 @@ export class DatabaseStorage implements IStorage {
 
   async getReportsByUserId(userId: string): Promise<Report[]> {
     return await db.select().from(reports).where(eq(reports.reportedUserId, userId));
+  }
+
+  async getAllReports(): Promise<Report[]> {
+    return await db.select().from(reports).orderBy(desc(reports.createdAt));
   }
 
   async createBlock(insertBlock: InsertBlock): Promise<Block> {
@@ -705,6 +710,12 @@ class InMemoryStorage implements IStorage {
 
   async getReportsByUserId(userId: string): Promise<Report[]> {
     return Array.from(this.reports.values()).filter(r => r.reportedUserId === userId);
+  }
+
+  async getAllReports(): Promise<Report[]> {
+    return Array.from(this.reports.values()).sort((a, b) =>
+      new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
   }
 
   async createBlock(insertBlock: InsertBlock): Promise<Block> {

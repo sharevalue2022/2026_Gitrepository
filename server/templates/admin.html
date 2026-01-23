@@ -691,6 +691,7 @@
         <button class="tab" data-section="members" onclick="setSection('members')">회원 관리</button>
         <button class="tab" data-section="messages" onclick="setSection('messages')">메시지 조회</button>
         <button class="tab" data-section="risky" onclick="setSection('risky')">⚠️ 위험 유저 감지</button>
+        <button class="tab" data-section="reports" onclick="setSection('reports')">📢 신고 내역</button>
       </div>
 
       <div id="requests-section">
@@ -831,6 +832,46 @@
 
         <div id="risky-users-list">
           <div class="loading">로딩 중...</div>
+        </div>
+      </div>
+
+      <div id="reports-section" style="display: none;">
+        <div class="stats" id="reports-stats">
+          <div class="stat-card">
+            <div class="stat-label">총 신고 건수</div>
+            <div class="stat-value" id="stat-total-reports">-</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">오늘 신고</div>
+            <div class="stat-value" id="stat-today-reports">-</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">이번 주 신고</div>
+            <div class="stat-value" id="stat-week-reports">-</div>
+          </div>
+        </div>
+
+        <div class="info-banner" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 16px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 24px;">📢</span>
+          <div>
+            <div style="font-weight: 600; margin-bottom: 4px;">신고 내역 및 메시지 스냅샷</div>
+            <div style="font-size: 14px; opacity: 0.9;">신고 시점의 대화 내용을 확인하고 적절한 조치를 취하세요</div>
+          </div>
+        </div>
+
+        <div id="reports-list">
+          <div class="loading">로딩 중...</div>
+        </div>
+
+        <div id="report-detail-modal" class="modal" style="display: none;">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3 id="report-modal-title">신고 상세 내용</h3>
+              <button class="modal-close" onclick="closeReportModal()">&times;</button>
+            </div>
+            <div id="report-messages-container" class="messages-container">
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1056,9 +1097,12 @@
         document.getElementById('members-section').style.display = section === 'members' ? 'block' : 'none';
         document.getElementById('messages-section').style.display = section === 'messages' ? 'block' : 'none';
         document.getElementById('risky-section').style.display = section === 'risky' ? 'block' : 'none';
+        document.getElementById('reports-section').style.display = section === 'reports' ? 'block' : 'none';
 
         if (section === 'risky') {
           loadRiskyUsers();
+        } else if (section === 'reports') {
+          loadReports();
         }
       }
 
@@ -1144,6 +1188,142 @@
           document.getElementById('risky-users-list').innerHTML =
             '<div class="empty-state"><h3>데이터를 불러올 수 없습니다</h3><p>서버 연결을 확인해주세요.</p></div>';
         }
+      }
+
+      async function loadReports() {
+        try {
+          const response = await fetch('/api/admin/reports');
+          const data = await response.json();
+
+          if (data.success) {
+            const reports = data.reports;
+
+            // Update stats
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const weekAgo = new Date(today);
+            weekAgo.setDate(weekAgo.getDate() - 7);
+
+            const todayReports = reports.filter(r => new Date(r.createdAt) >= today).length;
+            const weekReports = reports.filter(r => new Date(r.createdAt) >= weekAgo).length;
+
+            document.getElementById('stat-total-reports').textContent = reports.length;
+            document.getElementById('stat-today-reports').textContent = todayReports;
+            document.getElementById('stat-week-reports').textContent = weekReports;
+
+            // Render list
+            const listContainer = document.getElementById('reports-list');
+            if (reports.length === 0) {
+              listContainer.innerHTML = '<div class="empty-state"><h3>✅ 신고 내역이 없습니다</h3><p>아직 신고가 접수되지 않았습니다.</p></div>';
+              return;
+            }
+
+            listContainer.innerHTML = reports.map(report => {
+              const reporter = report.reporter || {};
+              const reportedUser = report.reportedUser || {};
+              const reportTime = new Date(report.createdAt).toLocaleString('ko-KR');
+              const hasSnapshot = report.messageSnapshot && report.messageSnapshot.length > 0;
+
+              return `
+                <div class="card" style="margin-bottom: 16px;">
+                  <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
+                    <div style="flex: 1;">
+                      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                        <h3 style="margin: 0; font-size: 18px;">신고자: ${reporter.name || '알 수 없음'}</h3>
+                        <span class="badge ${reporter.gender === 'male' ? 'male' : 'female'}">${reporter.gender === 'male' ? '남성' : '여성'}</span>
+                      </div>
+                      <div style="color: #6b7280; font-size: 14px; margin-bottom: 4px;">
+                        신고 대상: <strong style="color: #dc2626;">${reportedUser.name || '알 수 없음'}</strong> (${reportedUser.age}세, ${reportedUser.gender === 'male' ? '남성' : '여성'})
+                      </div>
+                      <div style="color: #6b7280; font-size: 13px;">
+                        ${reportTime}
+                      </div>
+                    </div>
+                    ${reportedUser.isBanned ? '<span class="badge banned">영구 차단</span>' : ''}
+                    ${reportedUser.isSuspended ? '<span class="badge suspended">정지됨</span>' : ''}
+                  </div>
+
+                  <div style="padding: 12px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 8px; margin-bottom: 12px;">
+                    <div style="font-size: 14px; font-weight: 600; color: #92400e; margin-bottom: 4px;">
+                      📋 신고 사유: ${report.reason}
+                    </div>
+                    ${report.description ? `
+                      <div style="font-size: 13px; color: #78350f; margin-top: 8px;">
+                        상세 설명: ${report.description}
+                      </div>
+                    ` : ''}
+                  </div>
+
+                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 12px; background: #f9fafb; border-radius: 8px; margin-bottom: 12px;">
+                    <div>
+                      <div style="font-size: 12px; color: #6b7280;">신고 대상 누적 신고</div>
+                      <div style="font-size: 18px; font-weight: 700; color: ${reportedUser.reportCount >= 5 ? '#dc2626' : '#374151'};">${reportedUser.reportCount || 0}회</div>
+                    </div>
+                    <div>
+                      <div style="font-size: 12px; color: #6b7280;">신고 대상 누적 차단</div>
+                      <div style="font-size: 18px; font-weight: 700; color: ${reportedUser.blockCount >= 3 ? '#dc2626' : '#374151'};">${reportedUser.blockCount || 0}회</div>
+                    </div>
+                  </div>
+
+                  ${hasSnapshot ? `
+                    <button class="btn" style="background: #6B5B95; color: white; width: 100%;" onclick="viewReportMessages('${report.id}')">
+                      💬 메시지 스냅샷 보기 (${report.messageSnapshot.length}개 메시지)
+                    </button>
+                  ` : `
+                    <div style="text-align: center; padding: 12px; background: #f3f4f6; border-radius: 8px; color: #6b7280; font-size: 14px;">
+                      메시지 스냅샷 없음 (대화가 없었거나 오류 발생)
+                    </div>
+                  `}
+                </div>
+              `;
+            }).join('');
+          }
+        } catch (error) {
+          console.error('Failed to load reports:', error);
+          document.getElementById('reports-list').innerHTML =
+            '<div class="empty-state"><h3>데이터를 불러올 수 없습니다</h3><p>서버 연결을 확인해주세요.</p></div>';
+        }
+      }
+
+      function viewReportMessages(reportId) {
+        fetch('/api/admin/reports')
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              const report = data.reports.find(r => r.id === reportId);
+              if (!report || !report.messageSnapshot) return;
+
+              const reporter = report.reporter || {};
+              const reportedUser = report.reportedUser || {};
+
+              document.getElementById('report-modal-title').textContent =
+                `신고 메시지 스냅샷: ${reporter.name} → ${reportedUser.name}`;
+
+              const messagesHtml = report.messageSnapshot.map(msg => {
+                const isReporter = msg.senderId === reporter.id;
+                const messageTime = new Date(msg.createdAt).toLocaleString('ko-KR');
+
+                return `
+                  <div class="message-bubble ${isReporter ? 'sent' : 'received'}">
+                    <div class="message-sender">${msg.senderName}</div>
+                    <div class="message-content">${msg.content}</div>
+                    <div class="message-time">${messageTime}</div>
+                  </div>
+                `;
+              }).join('');
+
+              document.getElementById('report-messages-container').innerHTML = messagesHtml;
+              document.getElementById('report-detail-modal').style.display = 'flex';
+            }
+          })
+          .catch(error => {
+            console.error('Failed to load report messages:', error);
+            alert('메시지를 불러오는데 실패했습니다.');
+          });
+      }
+
+      function closeReportModal() {
+        document.getElementById('report-detail-modal').style.display = 'none';
       }
 
       function updateConversationStats() {
