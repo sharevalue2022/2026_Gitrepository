@@ -13,7 +13,12 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
-import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import {
+  RouteProp,
+  useNavigation,
+  useRoute,
+  CommonActions,
+} from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { Feather } from "@expo/vector-icons";
@@ -80,8 +85,15 @@ export default function UserProfileScreen() {
             { text: "취소", style: "cancel" },
             {
               text: "가입하기",
-              onPress: () =>
-                navigation.navigate("Main", { screen: "MembershipTab" } as any),
+              onPress: () => {
+                // Go back to discover screen first, then navigate to membership tab
+                navigation.goBack();
+                setTimeout(() => {
+                  navigation.navigate("Main", {
+                    screen: "MembershipTab",
+                  } as never);
+                }, 100);
+              },
             },
           ],
         );
