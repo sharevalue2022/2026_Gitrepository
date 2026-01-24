@@ -274,7 +274,7 @@ export default function OptionalProfileScreen({
           <View
             style={[
               styles.progressBarBg,
-              { backgroundColor: theme.backgroundDefault },
+              { backgroundColor: "rgba(212, 175, 55, 0.2)" }, // 골드색 20% 투명도
             ]}
           >
             <View

@@ -177,9 +177,7 @@ export default function ProfileScreen() {
             style={[
               styles.progressBarContainer,
               {
-                backgroundColor: isDark
-                  ? "rgba(255, 255, 255, 0.1)"
-                  : "rgba(0, 0, 0, 0.1)",
+                backgroundColor: "rgba(212, 175, 55, 0.2)", // 골드색 20% 투명도
               },
             ]}
           >
