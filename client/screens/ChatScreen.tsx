@@ -66,7 +66,7 @@ export default function ChatScreen() {
 
     try {
       const response = await fetch(
-        new URL(\`/api/blocks/check?userId=\${user.id}&otherUserId=\${conversation.participantId}\`, getApiUrl()).href
+        new URL(`/api/blocks/check?userId=${user.id}&otherUserId=${conversation.participantId}`, getApiUrl()).href
       );
       const data = await response.json();
       if (data.success) {
@@ -113,7 +113,7 @@ export default function ChatScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     const newMessage: Message = {
-      id: \`msg_\${Date.now()}\`,
+      id: `msg_${Date.now()}`,
       conversationId,
       senderId: user.id,
       text: inputText.trim(),
