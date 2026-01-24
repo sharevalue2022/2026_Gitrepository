@@ -11,6 +11,7 @@ export const AppColors = {
   border: "#2A2A2A",
   success: "#10B981",
   error: "#EF4444",
+  warning: "#F59E0B",
 };
 
 export const Colors = {

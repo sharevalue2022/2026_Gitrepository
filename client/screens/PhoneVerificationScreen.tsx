@@ -210,7 +210,7 @@ export default function PhoneVerificationScreen({ navigation }: PhoneVerificatio
               {code.map((digit, index) => (
                 <TextInput
                   key={index}
-                  ref={(ref) => (inputRefs.current[index] = ref)}
+                  ref={(ref) => { inputRefs.current[index] = ref; }}
                   style={[
                     styles.codeInput,
                     {
@@ -228,7 +228,7 @@ export default function PhoneVerificationScreen({ navigation }: PhoneVerificatio
               ))}
             </View>
             {error ? (
-              <ThemedText type="caption" style={styles.errorText}>
+              <ThemedText type="small" style={styles.errorText}>
                 {error}
               </ThemedText>
             ) : null}
@@ -244,7 +244,7 @@ export default function PhoneVerificationScreen({ navigation }: PhoneVerificatio
             </Pressable>
             {demoCode ? (
               <ThemedText
-                type="caption"
+                type="small"
                 style={[styles.demoHint, { color: AppColors.accent }]}
               >
                 (테스트용 인증번호: {demoCode})

@@ -1,6 +1,6 @@
 import { users, conversations, messages, paymentRequests, reports, blocks, csMemos, type User, type InsertUser, type Conversation, type InsertConversation, type Message, type InsertMessage, type PaymentRequest, type InsertPaymentRequest, type Report, type InsertReport, type Block, type InsertBlock, type CsMemo, type InsertCsMemo } from "@shared/schema";
 import { db } from "./db";
-import { eq, or, and, desc, ne } from "drizzle-orm";
+import { eq, or, and, desc, ne, sql } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -144,7 +144,7 @@ export class DatabaseStorage implements IStorage {
       ))
       .orderBy(desc(conversations.lastMessageAt));
 
-    const result = await Promise.all(convs.map(async (conv) => {
+    const result = await Promise.all(convs.map(async (conv: Conversation) => {
       const otherUserId = conv.user1Id === userId ? conv.user2Id : conv.user1Id;
       const [otherUser] = await db.select().from(users).where(eq(users.id, otherUserId));
       
@@ -204,7 +204,7 @@ export class DatabaseStorage implements IStorage {
     const convs = await db.select().from(conversations)
       .orderBy(desc(conversations.lastMessageAt));
 
-    const result = await Promise.all(convs.map(async (conv) => {
+    const result = await Promise.all(convs.map(async (conv: Conversation) => {
       const [user1] = await db.select().from(users).where(eq(users.id, conv.user1Id));
       const [user2] = await db.select().from(users).where(eq(users.id, conv.user2Id));
       
@@ -216,8 +216,8 @@ export class DatabaseStorage implements IStorage {
       const allMessages = await db.select().from(messages)
         .where(eq(messages.conversationId, conv.id));
 
-      const user1MessageCount = allMessages.filter(m => m.senderId === conv.user1Id).length;
-      const user2MessageCount = allMessages.filter(m => m.senderId === conv.user2Id).length;
+      const user1MessageCount = allMessages.filter((m: Message) => m.senderId === conv.user1Id).length;
+      const user2MessageCount = allMessages.filter((m: Message) => m.senderId === conv.user2Id).length;
       const isOneWay = user1MessageCount === 0 || user2MessageCount === 0;
 
       return {
@@ -267,7 +267,7 @@ export class DatabaseStorage implements IStorage {
     const requests = await db.select().from(paymentRequests)
       .orderBy(desc(paymentRequests.requestedAt));
     
-    const result = await Promise.all(requests.map(async (req) => {
+    const result = await Promise.all(requests.map(async (req: PaymentRequest) => {
       const [user] = await db.select().from(users).where(eq(users.id, req.userId));
       return { ...req, user: user! };
     }));
@@ -280,7 +280,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(paymentRequests.status, "pending"))
       .orderBy(desc(paymentRequests.requestedAt));
     
-    const result = await Promise.all(requests.map(async (req) => {
+    const result = await Promise.all(requests.map(async (req: PaymentRequest) => {
       const [user] = await db.select().from(users).where(eq(users.id, req.userId));
       return { ...req, user: user! };
     }));
@@ -375,7 +375,7 @@ export class DatabaseStorage implements IStorage {
       ))
       .orderBy(desc(sql`COALESCE(${users.reportCount}, 0) + COALESCE(${users.blockCount}, 0)`));
 
-    return riskyUsers.map(u => ({
+    return riskyUsers.map((u: User) => ({
       ...u,
       reportCount: u.reportCount || 0,
       blockCount: u.blockCount || 0,
@@ -427,7 +427,7 @@ export class DatabaseStorage implements IStorage {
 
     // Expiring users in 7 days
     const allUsers = await db.select().from(users);
-    const expiringUsers = allUsers.filter(user => {
+    const expiringUsers = allUsers.filter((user: User) => {
       if (!user.isKingMember || !user.kingMembershipStartDate) return false;
       const expiryDate = new Date(user.kingMembershipStartDate);
       expiryDate.setDate(expiryDate.getDate() + 30);
@@ -448,8 +448,8 @@ export class DatabaseStorage implements IStorage {
       const dayUsers = await db.select().from(users)
         .where(sql`${users.createdAt} < ${nextDate}`);
 
-      const maleCount = dayUsers.filter(u => u.gender === 'male').length;
-      const femaleCount = dayUsers.filter(u => u.gender === 'female').length;
+      const maleCount = dayUsers.filter((u: User) => u.gender === 'male').length;
+      const femaleCount = dayUsers.filter((u: User) => u.gender === 'female').length;
 
       genderRatioHistory.push({
         date: date.toISOString().split('T')[0],
@@ -466,6 +466,36 @@ export class DatabaseStorage implements IStorage {
       expiringUsersIn7Days,
       genderRatioHistory,
     };
+  }
+
+  async createCsMemo(insertMemo: InsertCsMemo): Promise<CsMemo> {
+    const [memo] = await db
+      .insert(csMemos)
+      .values(insertMemo)
+      .returning();
+    return memo;
+  }
+
+  async getCsMemosByUserId(userId: string): Promise<CsMemo[]> {
+    const memos = await db
+      .select()
+      .from(csMemos)
+      .where(eq(csMemos.userId, userId))
+      .orderBy(desc(csMemos.createdAt));
+    return memos;
+  }
+
+  async updateCsMemo(id: string, memoText: string, adminId: string): Promise<CsMemo | undefined> {
+    const [updated] = await db
+      .update(csMemos)
+      .set({ memo: memoText, adminId, updatedAt: new Date() })
+      .where(eq(csMemos.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteCsMemo(id: string): Promise<void> {
+    await db.delete(csMemos).where(eq(csMemos.id, id));
   }
 }
 
@@ -488,9 +518,10 @@ class InMemoryStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
+    const id = crypto.randomUUID();
     const user: User = {
       ...insertUser,
-      id: insertUser.id || crypto.randomUUID(),
+      id,
       reportCount: 0,
       blockCount: 0,
       createdAt: new Date(),
@@ -541,7 +572,7 @@ class InMemoryStorage implements IStorage {
 
       const convMessages = Array.from(this.messages.values())
         .filter(m => m.conversationId === conv.id)
-        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        .sort((a, b) => (b.createdAt || new Date()).getTime() - (a.createdAt || new Date()).getTime());
 
       result.push({
         ...conv,
@@ -553,9 +584,10 @@ class InMemoryStorage implements IStorage {
   }
 
   async createConversation(conv: InsertConversation): Promise<Conversation> {
+    const id = crypto.randomUUID();
     const conversation: Conversation = {
       ...conv,
-      id: conv.id || crypto.randomUUID(),
+      id,
       createdAt: new Date(),
     } as Conversation;
     this.conversations.set(conversation.id, conversation);
@@ -565,15 +597,16 @@ class InMemoryStorage implements IStorage {
   async getMessages(conversationId: string): Promise<Message[]> {
     return Array.from(this.messages.values())
       .filter(m => m.conversationId === conversationId)
-      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+      .sort((a, b) => (a.createdAt || new Date()).getTime() - (b.createdAt || new Date()).getTime());
   }
 
   async createMessage(msg: InsertMessage): Promise<Message> {
+    const id = crypto.randomUUID();
     const message: Message = {
       ...msg,
-      id: msg.id || crypto.randomUUID(),
+      id,
       createdAt: new Date(),
-      isRead: msg.isRead ?? false,
+      read: false,
     } as Message;
     this.messages.set(message.id, message);
     return message;
@@ -582,7 +615,7 @@ class InMemoryStorage implements IStorage {
   async markMessagesAsRead(conversationId: string, userId: string): Promise<void> {
     for (const [id, msg] of this.messages) {
       if (msg.conversationId === conversationId && msg.senderId !== userId) {
-        this.messages.set(id, { ...msg, isRead: true });
+        this.messages.set(id, { ...msg, read: true });
       }
     }
   }
@@ -596,7 +629,7 @@ class InMemoryStorage implements IStorage {
 
       const convMessages = Array.from(this.messages.values())
         .filter(m => m.conversationId === conv.id)
-        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        .sort((a, b) => (b.createdAt || new Date()).getTime() - (a.createdAt || new Date()).getTime());
 
       const user1MessageCount = convMessages.filter(m => m.senderId === conv.user1Id).length;
       const user2MessageCount = convMessages.filter(m => m.senderId === conv.user2Id).length;
@@ -616,11 +649,17 @@ class InMemoryStorage implements IStorage {
   }
 
   async createPaymentRequest(request: InsertPaymentRequest): Promise<PaymentRequest> {
+    const id = crypto.randomUUID();
     const paymentRequest: PaymentRequest = {
       ...request,
-      id: request.id || crypto.randomUUID(),
-      submittedAt: new Date(),
-      status: request.status || 'pending',
+      id,
+      requestedAt: new Date(),
+      status: 'pending',
+      processedAt: null,
+      processedBy: null,
+      amount: request.amount || 250000,
+      depositorName: request.depositorName || null,
+      notes: request.notes || null,
     } as PaymentRequest;
     this.paymentRequests.set(paymentRequest.id, paymentRequest);
     return paymentRequest;
@@ -633,13 +672,13 @@ class InMemoryStorage implements IStorage {
   async getPaymentRequestByUser(userId: string): Promise<PaymentRequest | undefined> {
     return Array.from(this.paymentRequests.values())
       .filter(r => r.userId === userId && r.status === 'pending')
-      .sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime())[0];
+      .sort((a, b) => (b.requestedAt || new Date()).getTime() - (a.requestedAt || new Date()).getTime())[0];
   }
 
   async getPaymentRequestsByUserId(userId: string): Promise<PaymentRequest[]> {
     return Array.from(this.paymentRequests.values())
       .filter(r => r.userId === userId)
-      .sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
+      .sort((a, b) => (b.requestedAt || new Date()).getTime() - (a.requestedAt || new Date()).getTime());
   }
 
   async getAllPaymentRequests(): Promise<(PaymentRequest & { user: User })[]> {
@@ -649,7 +688,7 @@ class InMemoryStorage implements IStorage {
       if (!user) continue;
       result.push({ ...req, user });
     }
-    return result.sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
+    return result.sort((a, b) => (b.requestedAt || new Date()).getTime() - (a.requestedAt || new Date()).getTime());
   }
 
   async getPendingPaymentRequests(): Promise<(PaymentRequest & { user: User })[]> {
@@ -701,6 +740,8 @@ class InMemoryStorage implements IStorage {
       ...insertReport,
       id: crypto.randomUUID(),
       createdAt: new Date(),
+      description: insertReport.description || null,
+      messageSnapshot: insertReport.messageSnapshot || null,
     };
     this.reports.set(report.id, report);
 
@@ -820,8 +861,8 @@ class InMemoryStorage implements IStorage {
         return createdAt < nextDate;
       });
 
-      const maleCount = dayUsers.filter(u => u.gender === 'male').length;
-      const femaleCount = dayUsers.filter(u => u.gender === 'female').length;
+      const maleCount = dayUsers.filter((u: User) => u.gender === 'male').length;
+      const femaleCount = dayUsers.filter((u: User) => u.gender === 'female').length;
 
       genderRatioHistory.push({
         date: date.toISOString().split('T')[0],

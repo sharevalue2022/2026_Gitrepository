@@ -14,6 +14,7 @@ import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollV
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/context/AuthContext";
 import { Spacing, BorderRadius, AppColors } from "@/constants/theme";
+import type { UserPhoto } from "@/types";
 
 const HOBBIES = ["여행", "독서", "운동", "음악", "요리", "사진", "게임", "등산", "예술", "영화"];
 const FOODS = ["한식", "일식", "양식", "중식", "커피", "와인", "디저트", "건강식", "분식", "파인다이닝"];
@@ -32,7 +33,7 @@ export default function EditProfileScreen() {
   const [bio, setBio] = useState(user?.bio || "");
   const [selectedHobbies, setSelectedHobbies] = useState<string[]>(user?.hobbies || []);
   const [selectedFoods, setSelectedFoods] = useState<string[]>(user?.foodPreferences || []);
-  const [photos, setPhotos] = useState<string[]>(user?.photos || []);
+  const [photos, setPhotos] = useState<UserPhoto[]>(user?.photos || []);
   const [isSaving, setIsSaving] = useState(false);
 
   const toggleHobby = (hobby: string) => {
@@ -58,7 +59,7 @@ export default function EditProfileScreen() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      setPhotos((prev) => [...prev, result.assets[0].uri].slice(0, 5));
+      setPhotos((prev) => [...prev, { url: result.assets[0].uri, approved: false }].slice(0, 5));
     }
   };
 
@@ -109,9 +110,9 @@ export default function EditProfileScreen() {
           사진 (최대 5장)
         </ThemedText>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoScroll}>
-          {photos.map((uri, index) => (
+          {photos.map((photo, index) => (
             <View key={index} style={styles.photoWrapper}>
-              <Image source={{ uri }} style={styles.photo} />
+              <Image source={{ uri: photo.url }} style={styles.photo} />
               <Pressable
                 onPress={() => removePhoto(index)}
                 style={[styles.removePhoto, { backgroundColor: AppColors.error }]}

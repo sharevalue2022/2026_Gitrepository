@@ -826,7 +826,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 senderId: msg.senderId,
                 senderName: sender?.name || "Unknown",
                 content: msg.content,
-                createdAt: msg.createdAt,
+                createdAt: msg.createdAt || new Date(),
               };
             })
           );
