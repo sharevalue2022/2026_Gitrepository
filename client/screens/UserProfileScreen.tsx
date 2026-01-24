@@ -17,7 +17,6 @@ import {
   RouteProp,
   useNavigation,
   useRoute,
-  CommonActions,
 } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
@@ -86,13 +85,9 @@ export default function UserProfileScreen() {
             {
               text: "가입하기",
               onPress: () => {
-                // Go back to discover screen first, then navigate to membership tab
-                navigation.goBack();
-                setTimeout(() => {
-                  navigation.navigate("Main", {
-                    screen: "MembershipTab",
-                  } as never);
-                }, 100);
+                navigation.navigate("Main", {
+                  screen: "MembershipTab",
+                } as any);
               },
             },
           ],
