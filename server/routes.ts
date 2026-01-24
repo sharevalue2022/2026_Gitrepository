@@ -1000,6 +1000,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // CS Memos (Admin only)
+  // Get CS memos for a user
+  app.get("/api/admin/users/:userId/cs-memos", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const memos = await storage.getCsMemosByUserId(userId);
+      return res.json({ success: true, memos });
+    } catch (error) {
+      console.error("Get CS memos error:", error);
+      return res.status(500).json({ success: false, message: "CS 메모 조회 중 오류가 발생했습니다." });
+    }
+  });
+
+  // Create CS memo for a user
+  app.post("/api/admin/users/:userId/cs-memos", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { memo, adminId } = req.body;
+
+      if (!memo || !adminId) {
+        return res.status(400).json({ success: false, message: "메모 내용과 관리자 ID는 필수입니다." });
+      }
+
+      const newMemo = await storage.createCsMemo({
+        userId,
+        memo,
+        adminId,
+      });
+
+      return res.json({ success: true, memo: newMemo });
+    } catch (error) {
+      console.error("Create CS memo error:", error);
+      return res.status(500).json({ success: false, message: "CS 메모 생성 중 오류가 발생했습니다." });
+    }
+  });
+
+  // Update CS memo
+  app.put("/api/admin/cs-memos/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { memo, adminId } = req.body;
+
+      if (!memo || !adminId) {
+        return res.status(400).json({ success: false, message: "메모 내용과 관리자 ID는 필수입니다." });
+      }
+
+      const updated = await storage.updateCsMemo(id, memo, adminId);
+      if (!updated) {
+        return res.status(404).json({ success: false, message: "CS 메모를 찾을 수 없습니다." });
+      }
+
+      return res.json({ success: true, memo: updated });
+    } catch (error) {
+      console.error("Update CS memo error:", error);
+      return res.status(500).json({ success: false, message: "CS 메모 수정 중 오류가 발생했습니다." });
+    }
+  });
+
+  // Delete CS memo
+  app.delete("/api/admin/cs-memos/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteCsMemo(id);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Delete CS memo error:", error);
+      return res.status(500).json({ success: false, message: "CS 메모 삭제 중 오류가 발생했습니다." });
+    }
+  });
+
   // Reset all data (admin only - for development/testing)
   // Admin login page
   app.get("/admin", (req, res) => {

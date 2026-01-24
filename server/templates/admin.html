@@ -333,6 +333,13 @@
         font-size: 12px;
         border-radius: 6px;
       }
+      .btn-cs-memo {
+        background: #3B82F6;
+        color: #fff;
+      }
+      .btn-cs-memo:hover {
+        background: #2563EB;
+      }
       .btn-suspend {
         background: #FF5722;
         color: #fff;
@@ -625,6 +632,36 @@
         0%, 100% { transform: scale(1); }
         50% { transform: scale(1.01); }
       }
+      .cs-memo-item {
+        background: #F9FAFB;
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 8px;
+      }
+      .cs-memo-content {
+        color: #374151;
+        font-size: 14px;
+        line-height: 1.6;
+        margin-bottom: 8px;
+        white-space: pre-wrap;
+      }
+      .cs-memo-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: #6B7280;
+      }
+      .cs-memo-actions {
+        display: flex;
+        gap: 8px;
+      }
+      .cs-memo-actions button {
+        padding: 4px 8px;
+        font-size: 11px;
+        border-radius: 4px;
+      }
     </style>
   </head>
   <body>
@@ -769,6 +806,28 @@
         </div>
         <div id="members-list">
           <div class="loading">로딩 중...</div>
+        </div>
+      </div>
+
+      <!-- CS Memo Modal -->
+      <div id="cs-memo-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3 id="cs-memo-user-name">CS 메모</h3>
+            <button class="close-btn" onclick="closeCsMemoModal()">×</button>
+          </div>
+          <div class="modal-body">
+            <div id="cs-memos-list" style="margin-bottom: 20px; max-height: 400px; overflow-y: auto;">
+              <div class="loading">로딩 중...</div>
+            </div>
+            <div style="margin-top: 20px;">
+              <textarea id="new-memo-text" placeholder="새 메모 작성..." style="width: 100%; min-height: 100px; padding: 12px; border: 1px solid #E5E7EB; border-radius: 8px; font-family: inherit; font-size: 14px; resize: vertical;"></textarea>
+              <div style="display: flex; justify-content: flex-end; margin-top: 12px; gap: 8px;">
+                <button class="btn btn-secondary" onclick="closeCsMemoModal()">취소</button>
+                <button class="btn btn-primary" onclick="saveCsMemo()">저장</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1622,6 +1681,7 @@
               </div>
               ${timelineHtml}
               <div class="member-actions">
+                <button class="btn btn-small btn-cs-memo" onclick="openCsMemoModal('${member.id}', '${member.name || '사용자'}')">CS 메모</button>
                 ${actionButtons}
               </div>
             </div>
@@ -1836,6 +1896,162 @@
           console.error('Reject error:', error);
           alert('거절 처리 중 오류가 발생했습니다.');
         }
+      }
+
+      // CS Memo functions
+      let currentCsMemoUserId = null;
+      let currentCsMemos = [];
+
+      async function openCsMemoModal(userId, userName) {
+        currentCsMemoUserId = userId;
+        document.getElementById('cs-memo-user-name').textContent = `CS 메모 - ${userName}`;
+        document.getElementById('cs-memo-modal').style.display = 'flex';
+        document.getElementById('new-memo-text').value = '';
+
+        // Load existing memos
+        await loadCsMemos(userId);
+      }
+
+      function closeCsMemoModal() {
+        document.getElementById('cs-memo-modal').style.display = 'none';
+        currentCsMemoUserId = null;
+        currentCsMemos = [];
+      }
+
+      async function loadCsMemos(userId) {
+        try {
+          document.getElementById('cs-memos-list').innerHTML = '<div class="loading">로딩 중...</div>';
+
+          const response = await fetch(`/api/admin/users/${userId}/cs-memos`);
+          const data = await response.json();
+
+          if (data.success) {
+            currentCsMemos = data.memos;
+            renderCsMemos();
+          } else {
+            document.getElementById('cs-memos-list').innerHTML = '<div class="empty-state">메모 불러오기 실패</div>';
+          }
+        } catch (error) {
+          console.error('Load CS memos error:', error);
+          document.getElementById('cs-memos-list').innerHTML = '<div class="empty-state">메모 불러오기 중 오류 발생</div>';
+        }
+      }
+
+      function renderCsMemos() {
+        const container = document.getElementById('cs-memos-list');
+
+        if (currentCsMemos.length === 0) {
+          container.innerHTML = '<div class="empty-state">작성된 메모가 없습니다.</div>';
+          return;
+        }
+
+        const html = currentCsMemos.map(memo => {
+          const createdAt = new Date(memo.createdAt);
+          const updatedAt = new Date(memo.updatedAt);
+          const timeStr = createdAt.toLocaleString('ko-KR');
+          const isEdited = createdAt.getTime() !== updatedAt.getTime();
+
+          return `
+            <div class="cs-memo-item">
+              <div class="cs-memo-content">${escapeHtml(memo.memo)}</div>
+              <div class="cs-memo-meta">
+                <span>작성: ${memo.adminId} · ${timeStr}${isEdited ? ' (수정됨)' : ''}</span>
+                <div class="cs-memo-actions">
+                  <button class="btn btn-small" onclick="editCsMemo('${memo.id}', \`${escapeForJs(memo.memo)}\`)">수정</button>
+                  <button class="btn btn-small btn-delete" onclick="deleteCsMemo('${memo.id}')">삭제</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        container.innerHTML = html;
+      }
+
+      async function saveCsMemo() {
+        const memoText = document.getElementById('new-memo-text').value.trim();
+        if (!memoText) {
+          alert('메모 내용을 입력해주세요.');
+          return;
+        }
+
+        try {
+          const response = await fetch(`/api/admin/users/${currentCsMemoUserId}/cs-memos`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              memo: memoText,
+              adminId: 'admin'
+            })
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            document.getElementById('new-memo-text').value = '';
+            await loadCsMemos(currentCsMemoUserId);
+          } else {
+            alert('메모 저장 실패: ' + (data.message || '알 수 없는 오류'));
+          }
+        } catch (error) {
+          console.error('Save CS memo error:', error);
+          alert('메모 저장 중 오류가 발생했습니다.');
+        }
+      }
+
+      async function editCsMemo(memoId, currentText) {
+        const newText = prompt('메모 수정:', currentText);
+        if (newText === null || newText.trim() === '') return;
+
+        try {
+          const response = await fetch(`/api/admin/cs-memos/${memoId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              memo: newText.trim(),
+              adminId: 'admin'
+            })
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            await loadCsMemos(currentCsMemoUserId);
+          } else {
+            alert('메모 수정 실패: ' + (data.message || '알 수 없는 오류'));
+          }
+        } catch (error) {
+          console.error('Edit CS memo error:', error);
+          alert('메모 수정 중 오류가 발생했습니다.');
+        }
+      }
+
+      async function deleteCsMemo(memoId) {
+        if (!confirm('정말로 이 메모를 삭제하시겠습니까?')) return;
+
+        try {
+          const response = await fetch(`/api/admin/cs-memos/${memoId}`, {
+            method: 'DELETE'
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            await loadCsMemos(currentCsMemoUserId);
+          } else {
+            alert('메모 삭제 실패: ' + (data.message || '알 수 없는 오류'));
+          }
+        } catch (error) {
+          console.error('Delete CS memo error:', error);
+          alert('메모 삭제 중 오류가 발생했습니다.');
+        }
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      function escapeForJs(text) {
+        return text.replace(/`/g, '\\`').replace(/\$/g, '\\$').replace(/\\/g, '\\\\');
       }
 
       loadData();

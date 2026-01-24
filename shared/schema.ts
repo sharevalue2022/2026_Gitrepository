@@ -174,6 +174,24 @@ export const blocksRelations = relations(blocks, ({ one }) => ({
   }),
 }));
 
+export const csMemos = pgTable("cs_memos", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  memo: text("memo").notNull(),
+  adminId: text("admin_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const csMemosRelations = relations(csMemos, ({ one }) => ({
+  user: one(users, {
+    fields: [csMemos.userId],
+    references: [users.id],
+  }),
+}));
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -209,6 +227,12 @@ export const insertBlockSchema = createInsertSchema(blocks).omit({
   createdAt: true,
 });
 
+export const insertCsMemoSchema = createInsertSchema(csMemos).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
@@ -221,3 +245,5 @@ export type InsertReport = z.infer<typeof insertReportSchema>;
 export type Report = typeof reports.$inferSelect;
 export type InsertBlock = z.infer<typeof insertBlockSchema>;
 export type Block = typeof blocks.$inferSelect;
+export type InsertCsMemo = z.infer<typeof insertCsMemoSchema>;
+export type CsMemo = typeof csMemos.$inferSelect;

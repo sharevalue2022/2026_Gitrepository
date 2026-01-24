@@ -1,4 +1,4 @@
-import { users, conversations, messages, paymentRequests, reports, blocks, type User, type InsertUser, type Conversation, type InsertConversation, type Message, type InsertMessage, type PaymentRequest, type InsertPaymentRequest, type Report, type InsertReport, type Block, type InsertBlock } from "@shared/schema";
+import { users, conversations, messages, paymentRequests, reports, blocks, csMemos, type User, type InsertUser, type Conversation, type InsertConversation, type Message, type InsertMessage, type PaymentRequest, type InsertPaymentRequest, type Report, type InsertReport, type Block, type InsertBlock, type CsMemo, type InsertCsMemo } from "@shared/schema";
 import { db } from "./db";
 import { eq, or, and, desc, ne } from "drizzle-orm";
 
@@ -45,6 +45,11 @@ export interface IStorage {
     expiringUsersIn7Days: number;
     genderRatioHistory: { date: string; maleCount: number; femaleCount: number }[];
   }>;
+
+  createCsMemo(memo: InsertCsMemo): Promise<CsMemo>;
+  getCsMemosByUserId(userId: string): Promise<CsMemo[]>;
+  updateCsMemo(id: string, memo: string, adminId: string): Promise<CsMemo | undefined>;
+  deleteCsMemo(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -472,6 +477,7 @@ class InMemoryStorage implements IStorage {
   private paymentRequests: Map<string, PaymentRequest> = new Map();
   private reports: Map<string, Report> = new Map();
   private blocks: Map<string, Block> = new Map();
+  private csMemos: Map<string, CsMemo> = new Map();
 
   async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
@@ -832,6 +838,46 @@ class InMemoryStorage implements IStorage {
       expiringUsersIn7Days,
       genderRatioHistory,
     };
+  }
+
+  async createCsMemo(insertMemo: InsertCsMemo): Promise<CsMemo> {
+    const id = `memo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const now = new Date();
+    const memo: CsMemo = {
+      id,
+      userId: insertMemo.userId,
+      memo: insertMemo.memo,
+      adminId: insertMemo.adminId,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.csMemos.set(id, memo);
+    return memo;
+  }
+
+  async getCsMemosByUserId(userId: string): Promise<CsMemo[]> {
+    const memos = Array.from(this.csMemos.values())
+      .filter(m => m.userId === userId)
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+    return memos;
+  }
+
+  async updateCsMemo(id: string, memoText: string, adminId: string): Promise<CsMemo | undefined> {
+    const existing = this.csMemos.get(id);
+    if (!existing) return undefined;
+
+    const updated: CsMemo = {
+      ...existing,
+      memo: memoText,
+      adminId,
+      updatedAt: new Date(),
+    };
+    this.csMemos.set(id, updated);
+    return updated;
+  }
+
+  async deleteCsMemo(id: string): Promise<void> {
+    this.csMemos.delete(id);
   }
 
   // Reset all data (for testing/development)
