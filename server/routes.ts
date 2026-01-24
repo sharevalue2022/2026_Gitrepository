@@ -407,6 +407,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!request) {
         return res.status(404).json({ success: false, message: "결제 요청을 찾을 수 없습니다." });
       }
+
+      // Log admin action
+      const user = await storage.getUser(request.userId);
+      await storage.createAdminActionLog({
+        adminId: adminId || "admin",
+        action: "approve",
+        targetUserId: request.userId,
+        targetUserName: user?.name || "Unknown",
+        details: `결제 승인 - 금액: ₩${request.amount.toLocaleString()}`,
+      });
+
       return res.json({ success: true, request });
     } catch (error) {
       console.error("Approve payment request error:", error);
@@ -421,6 +432,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!request) {
         return res.status(404).json({ success: false, message: "결제 요청을 찾을 수 없습니다." });
       }
+
+      // Log admin action
+      const user = await storage.getUser(request.userId);
+      await storage.createAdminActionLog({
+        adminId: adminId || "admin",
+        action: "reject",
+        targetUserId: request.userId,
+        targetUserName: user?.name || "Unknown",
+        details: `결제 거절${notes ? ` - 사유: ${notes}` : ''}`,
+      });
+
       return res.json({ success: true, request });
     } catch (error) {
       console.error("Reject payment request error:", error);
@@ -614,19 +636,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/users/:userId/suspend", async (req, res) => {
     try {
       const { userId } = req.params;
-      const { reason } = req.body;
-      
+      const { reason, adminId } = req.body;
+
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ success: false, message: "사용자를 찾을 수 없습니다." });
       }
-      
+
       await storage.updateUser(userId, {
         isSuspended: true,
         suspendedAt: new Date(),
         suspendedReason: reason || '관리자에 의해 정지됨',
       });
-      
+
+      // Log admin action
+      await storage.createAdminActionLog({
+        adminId: adminId || "admin",
+        action: "suspend",
+        targetUserId: userId,
+        targetUserName: user.name,
+        details: reason || '관리자에 의해 정지됨',
+      });
+
       return res.json({ success: true, message: "사용자가 정지되었습니다." });
     } catch (error) {
       console.error("Suspend user error:", error);
@@ -638,18 +669,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/users/:userId/unsuspend", async (req, res) => {
     try {
       const { userId } = req.params;
-      
+      const { adminId } = req.body;
+
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ success: false, message: "사용자를 찾을 수 없습니다." });
       }
-      
+
       await storage.updateUser(userId, {
         isSuspended: false,
         suspendedAt: null,
         suspendedReason: null,
       });
-      
+
+      // Log admin action
+      await storage.createAdminActionLog({
+        adminId: adminId || "admin",
+        action: "unsuspend",
+        targetUserId: userId,
+        targetUserName: user.name,
+        details: '정지 해제',
+      });
+
       return res.json({ success: true, message: "사용자 정지가 해제되었습니다." });
     } catch (error) {
       console.error("Unsuspend user error:", error);
@@ -661,20 +702,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/users/:userId/ban", async (req, res) => {
     try {
       const { userId } = req.params;
-      const { reason } = req.body;
-      
+      const { reason, adminId } = req.body;
+
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ success: false, message: "사용자를 찾을 수 없습니다." });
       }
-      
+
       await storage.updateUser(userId, {
         isBanned: true,
         bannedAt: new Date(),
         bannedReason: reason || '관리자에 의해 영구 차단됨',
         isKingMember: false,
       });
-      
+
+      // Log admin action
+      await storage.createAdminActionLog({
+        adminId: adminId || "admin",
+        action: "block",
+        targetUserId: userId,
+        targetUserName: user.name,
+        details: reason || '관리자에 의해 영구 차단됨',
+      });
+
       return res.json({ success: true, message: "사용자가 영구 차단되었습니다." });
     } catch (error) {
       console.error("Ban user error:", error);
@@ -686,18 +736,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/users/:userId/unban", async (req, res) => {
     try {
       const { userId } = req.params;
-      
+      const { adminId } = req.body;
+
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ success: false, message: "사용자를 찾을 수 없습니다." });
       }
-      
+
       await storage.updateUser(userId, {
         isBanned: false,
         bannedAt: null,
         bannedReason: null,
       });
-      
+
+      // Log admin action
+      await storage.createAdminActionLog({
+        adminId: adminId || "admin",
+        action: "unblock",
+        targetUserId: userId,
+        targetUserName: user.name,
+        details: '영구 차단 해제',
+      });
+
       return res.json({ success: true, message: "사용자 차단이 해제되었습니다." });
     } catch (error) {
       console.error("Unban user error:", error);
@@ -1067,6 +1127,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Delete CS memo error:", error);
       return res.status(500).json({ success: false, message: "CS 메모 삭제 중 오류가 발생했습니다." });
+    }
+  });
+
+  // Admin Action Logs (Admin only)
+  // Get all admin action logs
+  app.get("/api/admin/action-logs", async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
+      const logs = await storage.getAdminActionLogs(limit);
+      return res.json({ success: true, logs });
+    } catch (error) {
+      console.error("Get admin action logs error:", error);
+      return res.status(500).json({ success: false, message: "관리자 행동 로그 조회 중 오류가 발생했습니다." });
+    }
+  });
+
+  // Get admin action logs for specific user
+  app.get("/api/admin/action-logs/user/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const logs = await storage.getAdminActionLogsByUser(userId);
+      return res.json({ success: true, logs });
+    } catch (error) {
+      console.error("Get user action logs error:", error);
+      return res.status(500).json({ success: false, message: "사용자 행동 로그 조회 중 오류가 발생했습니다." });
+    }
+  });
+
+  // Create admin action log
+  app.post("/api/admin/action-logs", async (req, res) => {
+    try {
+      const { adminId, action, targetUserId, targetUserName, details } = req.body;
+
+      if (!adminId || !action) {
+        return res.status(400).json({ success: false, message: "필수 정보가 누락되었습니다." });
+      }
+
+      const log = await storage.createAdminActionLog({
+        adminId,
+        action,
+        targetUserId: targetUserId || null,
+        targetUserName: targetUserName || null,
+        details: details || null,
+      });
+
+      return res.json({ success: true, log });
+    } catch (error) {
+      console.error("Create admin action log error:", error);
+      return res.status(500).json({ success: false, message: "관리자 행동 로그 생성 중 오류가 발생했습니다." });
     }
   });
 

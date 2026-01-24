@@ -192,6 +192,25 @@ export const csMemosRelations = relations(csMemos, ({ one }) => ({
   }),
 }));
 
+export const adminActionLogs = pgTable("admin_action_logs", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  adminId: text("admin_id").notNull(),
+  action: text("action").notNull(), // "approve", "reject", "suspend", "block"
+  targetUserId: varchar("target_user_id").references(() => users.id),
+  targetUserName: text("target_user_name"),
+  details: text("details"), // Additional context about the action
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const adminActionLogsRelations = relations(adminActionLogs, ({ one }) => ({
+  targetUser: one(users, {
+    fields: [adminActionLogs.targetUserId],
+    references: [users.id],
+  }),
+}));
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -233,6 +252,11 @@ export const insertCsMemoSchema = createInsertSchema(csMemos).omit({
   updatedAt: true,
 });
 
+export const insertAdminActionLogSchema = createInsertSchema(adminActionLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
@@ -247,3 +271,5 @@ export type InsertBlock = z.infer<typeof insertBlockSchema>;
 export type Block = typeof blocks.$inferSelect;
 export type InsertCsMemo = z.infer<typeof insertCsMemoSchema>;
 export type CsMemo = typeof csMemos.$inferSelect;
+export type InsertAdminActionLog = z.infer<typeof insertAdminActionLogSchema>;
+export type AdminActionLog = typeof adminActionLogs.$inferSelect;

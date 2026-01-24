@@ -1,4 +1,4 @@
-import { users, conversations, messages, paymentRequests, reports, blocks, csMemos, type User, type InsertUser, type Conversation, type InsertConversation, type Message, type InsertMessage, type PaymentRequest, type InsertPaymentRequest, type Report, type InsertReport, type Block, type InsertBlock, type CsMemo, type InsertCsMemo } from "@shared/schema";
+import { users, conversations, messages, paymentRequests, reports, blocks, csMemos, adminActionLogs, type User, type InsertUser, type Conversation, type InsertConversation, type Message, type InsertMessage, type PaymentRequest, type InsertPaymentRequest, type Report, type InsertReport, type Block, type InsertBlock, type CsMemo, type InsertCsMemo, type AdminActionLog, type InsertAdminActionLog } from "@shared/schema";
 import { db } from "./db";
 import { eq, or, and, desc, ne, sql } from "drizzle-orm";
 
@@ -50,6 +50,10 @@ export interface IStorage {
   getCsMemosByUserId(userId: string): Promise<CsMemo[]>;
   updateCsMemo(id: string, memo: string, adminId: string): Promise<CsMemo | undefined>;
   deleteCsMemo(id: string): Promise<void>;
+
+  createAdminActionLog(log: InsertAdminActionLog): Promise<AdminActionLog>;
+  getAdminActionLogs(limit?: number): Promise<AdminActionLog[]>;
+  getAdminActionLogsByUser(targetUserId: string): Promise<AdminActionLog[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -497,6 +501,32 @@ export class DatabaseStorage implements IStorage {
   async deleteCsMemo(id: string): Promise<void> {
     await db.delete(csMemos).where(eq(csMemos.id, id));
   }
+
+  async createAdminActionLog(log: InsertAdminActionLog): Promise<AdminActionLog> {
+    const [actionLog] = await db
+      .insert(adminActionLogs)
+      .values(log)
+      .returning();
+    return actionLog;
+  }
+
+  async getAdminActionLogs(limit: number = 100): Promise<AdminActionLog[]> {
+    const logs = await db
+      .select()
+      .from(adminActionLogs)
+      .orderBy(desc(adminActionLogs.createdAt))
+      .limit(limit);
+    return logs;
+  }
+
+  async getAdminActionLogsByUser(targetUserId: string): Promise<AdminActionLog[]> {
+    const logs = await db
+      .select()
+      .from(adminActionLogs)
+      .where(eq(adminActionLogs.targetUserId, targetUserId))
+      .orderBy(desc(adminActionLogs.createdAt));
+    return logs;
+  }
 }
 
 // In-memory storage implementation (for when DATABASE_URL is not set)
@@ -508,6 +538,7 @@ class InMemoryStorage implements IStorage {
   private reports: Map<string, Report> = new Map();
   private blocks: Map<string, Block> = new Map();
   private csMemos: Map<string, CsMemo> = new Map();
+  private adminActionLogs: Map<string, AdminActionLog> = new Map();
 
   async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
@@ -919,6 +950,36 @@ class InMemoryStorage implements IStorage {
 
   async deleteCsMemo(id: string): Promise<void> {
     this.csMemos.delete(id);
+  }
+
+  async createAdminActionLog(log: InsertAdminActionLog): Promise<AdminActionLog> {
+    const id = crypto.randomUUID();
+    const now = new Date();
+    const actionLog: AdminActionLog = {
+      id,
+      adminId: log.adminId,
+      action: log.action,
+      targetUserId: log.targetUserId || null,
+      targetUserName: log.targetUserName || null,
+      details: log.details || null,
+      createdAt: now,
+    };
+    this.adminActionLogs.set(id, actionLog);
+    return actionLog;
+  }
+
+  async getAdminActionLogs(limit: number = 100): Promise<AdminActionLog[]> {
+    const logs = Array.from(this.adminActionLogs.values())
+      .sort((a, b) => (b.createdAt || new Date()).getTime() - (a.createdAt || new Date()).getTime())
+      .slice(0, limit);
+    return logs;
+  }
+
+  async getAdminActionLogsByUser(targetUserId: string): Promise<AdminActionLog[]> {
+    const logs = Array.from(this.adminActionLogs.values())
+      .filter(log => log.targetUserId === targetUserId)
+      .sort((a, b) => (b.createdAt || new Date()).getTime() - (a.createdAt || new Date()).getTime());
+    return logs;
   }
 
   // Reset all data (for testing/development)

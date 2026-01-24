@@ -729,6 +729,7 @@
         <button class="tab" data-section="messages" onclick="setSection('messages')">메시지 조회</button>
         <button class="tab" data-section="risky" onclick="setSection('risky')">⚠️ 위험 유저 감지</button>
         <button class="tab" data-section="reports" onclick="setSection('reports')">📢 신고 내역</button>
+        <button class="tab" data-section="action-logs" onclick="setSection('action-logs')">📋 운영자 행동 로그</button>
       </div>
 
       <div id="requests-section">
@@ -805,6 +806,36 @@
           </div>
         </div>
         <div id="members-list">
+          <div class="loading">로딩 중...</div>
+        </div>
+      </div>
+
+      <!-- Action Logs Section -->
+      <div id="action-logs-section" style="display: none;">
+        <div class="info-banner" style="background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); color: white; padding: 16px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 24px;">📋</span>
+          <div>
+            <div style="font-weight: 600; margin-bottom: 4px;">운영자 행동 로그</div>
+            <div style="font-size: 14px; opacity: 0.9;">관리자의 모든 액션이 기록됩니다 - CS 분쟁 시 증빙 자료로 활용</div>
+          </div>
+        </div>
+
+        <div class="stats" id="action-logs-stats">
+          <div class="stat-card">
+            <div class="stat-label">오늘 액션</div>
+            <div class="stat-value" id="stat-today-actions">-</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">이번 주 액션</div>
+            <div class="stat-value" id="stat-week-actions">-</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">총 로그</div>
+            <div class="stat-value" id="stat-total-actions">-</div>
+          </div>
+        </div>
+
+        <div id="action-logs-list">
           <div class="loading">로딩 중...</div>
         </div>
       </div>
@@ -1157,11 +1188,14 @@
         document.getElementById('messages-section').style.display = section === 'messages' ? 'block' : 'none';
         document.getElementById('risky-section').style.display = section === 'risky' ? 'block' : 'none';
         document.getElementById('reports-section').style.display = section === 'reports' ? 'block' : 'none';
+        document.getElementById('action-logs-section').style.display = section === 'action-logs' ? 'block' : 'none';
 
         if (section === 'risky') {
           loadRiskyUsers();
         } else if (section === 'reports') {
           loadReports();
+        } else if (section === 'action-logs') {
+          loadActionLogs();
         }
       }
 
@@ -1383,6 +1417,89 @@
 
       function closeReportModal() {
         document.getElementById('report-detail-modal').style.display = 'none';
+      }
+
+      async function loadActionLogs() {
+        try {
+          const response = await fetch('/api/admin/action-logs?limit=100');
+          const data = await response.json();
+
+          if (data.success) {
+            const logs = data.logs;
+
+            // Update stats
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const weekAgo = new Date(today);
+            weekAgo.setDate(weekAgo.getDate() - 7);
+
+            const todayActions = logs.filter(l => new Date(l.createdAt) >= today).length;
+            const weekActions = logs.filter(l => new Date(l.createdAt) >= weekAgo).length;
+
+            document.getElementById('stat-today-actions').textContent = todayActions;
+            document.getElementById('stat-week-actions').textContent = weekActions;
+            document.getElementById('stat-total-actions').textContent = logs.length;
+
+            // Render list
+            const listContainer = document.getElementById('action-logs-list');
+            if (logs.length === 0) {
+              listContainer.innerHTML = '<div class="empty-state"><h3>📋 로그가 없습니다</h3><p>아직 관리자 액션이 기록되지 않았습니다.</p></div>';
+              return;
+            }
+
+            const actionLabels = {
+              'approve': '✅ 결제 승인',
+              'reject': '❌ 결제 거절',
+              'suspend': '⏸️ 사용자 정지',
+              'unsuspend': '▶️ 정지 해제',
+              'block': '🚫 영구 차단',
+              'unblock': '🔓 차단 해제'
+            };
+
+            const actionColors = {
+              'approve': '#10b981',
+              'reject': '#ef4444',
+              'suspend': '#f59e0b',
+              'unsuspend': '#3b82f6',
+              'block': '#dc2626',
+              'unblock': '#8b5cf6'
+            };
+
+            listContainer.innerHTML = logs.map(log => {
+              const actionLabel = actionLabels[log.action] || log.action;
+              const actionColor = actionColors[log.action] || '#6b7280';
+              const logTime = new Date(log.createdAt).toLocaleString('ko-KR');
+
+              return `
+                <div class="card" style="margin-bottom: 12px; border-left: 4px solid ${actionColor};">
+                  <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div style="flex: 1;">
+                      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                        <span style="font-size: 18px; font-weight: 700; color: ${actionColor};">${actionLabel}</span>
+                        <span style="font-size: 13px; color: #6b7280;">by ${log.adminId}</span>
+                      </div>
+                      <div style="font-size: 14px; color: #374151; margin-bottom: 4px;">
+                        대상: <strong>${log.targetUserName || '알 수 없음'}</strong> ${log.targetUserId ? `(ID: ${log.targetUserId})` : ''}
+                      </div>
+                      ${log.details ? `
+                        <div style="font-size: 13px; color: #6b7280; background: #f9fafb; padding: 8px 12px; border-radius: 6px; margin-top: 8px;">
+                          ${escapeHtml(log.details)}
+                        </div>
+                      ` : ''}
+                    </div>
+                    <div style="text-align: right; font-size: 12px; color: #9ca3af;">
+                      ${logTime}
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('');
+          }
+        } catch (error) {
+          console.error('Failed to load action logs:', error);
+          document.getElementById('action-logs-list').innerHTML =
+            '<div class="empty-state"><h3>데이터를 불러올 수 없습니다</h3><p>서버 연결을 확인해주세요.</p></div>';
+        }
       }
 
       function updateConversationStats() {
