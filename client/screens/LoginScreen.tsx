@@ -1,5 +1,13 @@
 import React, { useState } from "react";
-import { StyleSheet, View, TextInput, Alert, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import {
+  StyleSheet,
+  View,
+  TextInput,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import Animated, { FadeInDown } from "react-native-reanimated";
@@ -28,7 +36,8 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
   const formatPhoneNumber = (text: string) => {
     const numbers = text.replace(/[^\d]/g, "");
     if (numbers.length <= 3) return numbers;
-    if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+    if (numbers.length <= 7)
+      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
     return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
   };
 
@@ -53,15 +62,21 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
       if (!result.success) {
         if (result.message?.includes("계정이 없습니다")) {
           Alert.alert(
-            "계정 없음", 
+            "계정 없음",
             "등록된 계정이 없습니다. 회원가입을 먼저 진행해주세요.",
             [
               { text: "취소", style: "cancel" },
-              { text: "회원가입", onPress: () => navigation.navigate("GenderSelection") }
-            ]
+              {
+                text: "회원가입",
+                onPress: () => navigation.navigate("GenderSelection"),
+              },
+            ],
           );
         } else {
-          Alert.alert("로그인 실패", result.message || "로그인에 실패했습니다.");
+          Alert.alert(
+            "로그인 실패",
+            result.message || "로그인에 실패했습니다.",
+          );
         }
       }
     } catch (error) {
@@ -84,7 +99,10 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
         <ScrollView
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingTop: Spacing["4xl"], paddingBottom: insets.bottom + Spacing["2xl"] }
+            {
+              paddingTop: Spacing["4xl"],
+              paddingBottom: insets.bottom + Spacing["2xl"],
+            },
           ]}
           keyboardShouldPersistTaps="handled"
         >
@@ -92,12 +110,15 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
             <ThemedText type="h2" style={styles.title}>
               로그인
             </ThemedText>
-            <ThemedText type="body" style={[styles.subtitle, { color: theme.textSecondary }]}>
+            <ThemedText
+              type="body"
+              style={[styles.subtitle, { color: theme.textSecondary }]}
+            >
               가입 시 사용한 전화번호를 입력해주세요
             </ThemedText>
           </Animated.View>
 
-          <Animated.View 
+          <Animated.View
             style={styles.form}
             entering={FadeInDown.delay(400).duration(500)}
           >
@@ -112,7 +133,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
                     backgroundColor: "rgba(255,255,255,0.08)",
                     color: "#FFFFFF",
                     borderColor: "rgba(255,255,255,0.15)",
-                  }
+                  },
                 ]}
                 placeholder="010-0000-0000"
                 placeholderTextColor="#6B7280"
@@ -134,7 +155,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
                     backgroundColor: "rgba(255,255,255,0.08)",
                     color: "#FFFFFF",
                     borderColor: "rgba(255,255,255,0.15)",
-                  }
+                  },
                 ]}
                 placeholder="비밀번호를 입력해주세요"
                 placeholderTextColor="#6B7280"
@@ -146,18 +167,30 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
             <Button
               onPress={handleLogin}
-              disabled={isLoading || phoneNumber.length < 12 || !password.trim()}
+              disabled={
+                isLoading || phoneNumber.length < 12 || !password.trim()
+              }
               style={styles.loginButton}
             >
               {isLoading ? "로그인 중..." : "로그인"}
             </Button>
 
             <View style={styles.divider}>
-              <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
-              <ThemedText type="small" style={{ color: theme.textSecondary, marginHorizontal: Spacing.md }}>
+              <View
+                style={[styles.dividerLine, { backgroundColor: theme.border }]}
+              />
+              <ThemedText
+                type="small"
+                style={{
+                  color: theme.textSecondary,
+                  marginHorizontal: Spacing.md,
+                }}
+              >
                 또는
               </ThemedText>
-              <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
+              <View
+                style={[styles.dividerLine, { backgroundColor: theme.border }]}
+              />
             </View>
 
             <Button

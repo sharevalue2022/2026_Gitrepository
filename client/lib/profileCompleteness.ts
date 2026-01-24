@@ -12,7 +12,8 @@ export function calculateProfileCompleteness(user: UserProfile): number {
   if (user.bio && user.bio.trim().length > 0) completedFields++;
   if (user.occupation && user.occupation.trim().length > 0) completedFields++;
   if (user.hobbies && user.hobbies.length > 0) completedFields++;
-  if (user.foodPreferences && user.foodPreferences.length > 0) completedFields++;
+  if (user.foodPreferences && user.foodPreferences.length > 0)
+    completedFields++;
   if (user.photos && user.photos.length > 0) completedFields++;
   if (user.religion) completedFields++;
   if (user.drinking) completedFields++;
@@ -45,9 +46,11 @@ export function getMissingFields(user: UserProfile): string[] {
   const missing: string[] = [];
 
   if (!user.bio || user.bio.trim().length === 0) missing.push("자기소개");
-  if (!user.occupation || user.occupation.trim().length === 0) missing.push("직업");
+  if (!user.occupation || user.occupation.trim().length === 0)
+    missing.push("직업");
   if (!user.hobbies || user.hobbies.length === 0) missing.push("취미");
-  if (!user.foodPreferences || user.foodPreferences.length === 0) missing.push("음식 취향");
+  if (!user.foodPreferences || user.foodPreferences.length === 0)
+    missing.push("음식 취향");
   if (!user.photos || user.photos.length === 0) missing.push("사진");
   if (!user.religion) missing.push("종교");
   if (!user.drinking) missing.push("음주");

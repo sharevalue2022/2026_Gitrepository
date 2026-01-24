@@ -16,10 +16,18 @@ export function ProfileSection({ title, children }: ProfileSectionProps) {
 
   return (
     <View style={styles.section}>
-      <ThemedText type="small" style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+      <ThemedText
+        type="small"
+        style={[styles.sectionTitle, { color: theme.textSecondary }]}
+      >
         {title}
       </ThemedText>
-      <View style={[styles.sectionContent, { backgroundColor: theme.backgroundDefault }]}>
+      <View
+        style={[
+          styles.sectionContent,
+          { backgroundColor: theme.backgroundDefault },
+        ]}
+      >
         {children}
       </View>
     </View>
@@ -70,10 +78,7 @@ export function ProfileRow({
     return (
       <Pressable
         onPress={onPress}
-        style={({ pressed }) => [
-          styles.row,
-          { opacity: pressed ? 0.7 : 1 },
-        ]}
+        style={({ pressed }) => [styles.row, { opacity: pressed ? 0.7 : 1 }]}
       >
         {content}
       </Pressable>

@@ -8,7 +8,9 @@ let pool: any = null;
 let db: any = null;
 
 if (!process.env.DATABASE_URL) {
-  console.log("DATABASE_URL not set - using in-memory storage (data will not persist)");
+  console.log(
+    "DATABASE_URL not set - using in-memory storage (data will not persist)",
+  );
   // Will use InMemoryStorage from storage.ts
   pool = null;
   db = null;

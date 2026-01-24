@@ -19,7 +19,10 @@ interface ConversationRowProps {
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-export function ConversationRow({ conversation, onPress }: ConversationRowProps) {
+export function ConversationRow({
+  conversation,
+  onPress,
+}: ConversationRowProps) {
   const { theme } = useTheme();
   const scale = useSharedValue(1);
   const backgroundColor = useSharedValue("transparent");
@@ -44,9 +47,10 @@ export function ConversationRow({ conversation, onPress }: ConversationRowProps)
     onPress();
   };
 
-  const avatarSource = conversation.participantGender === "female"
-    ? require("../../assets/images/default-avatar-female.png")
-    : require("../../assets/images/default-avatar-male.png");
+  const avatarSource =
+    conversation.participantGender === "female"
+      ? require("../../assets/images/default-avatar-female.png")
+      : require("../../assets/images/default-avatar-male.png");
 
   const formatTime = () => {
     const date = new Date(conversation.lastMessageTime);
@@ -55,7 +59,10 @@ export function ConversationRow({ conversation, onPress }: ConversationRowProps)
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
     if (diffDays === 0) {
-      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      return date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
     } else if (diffDays === 1) {
       return "Yesterday";
     } else if (diffDays < 7) {
@@ -92,7 +99,9 @@ export function ConversationRow({ conversation, onPress }: ConversationRowProps)
             {conversation.lastMessage || "Start a conversation"}
           </ThemedText>
           {conversation.unreadCount > 0 ? (
-            <View style={[styles.badge, { backgroundColor: AppColors.primary }]}>
+            <View
+              style={[styles.badge, { backgroundColor: AppColors.primary }]}
+            >
               <ThemedText type="small" style={styles.badgeText}>
                 {conversation.unreadCount > 9 ? "9+" : conversation.unreadCount}
               </ThemedText>

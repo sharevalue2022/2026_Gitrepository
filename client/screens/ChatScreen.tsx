@@ -1,5 +1,15 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
-import { StyleSheet, View, TextInput, Pressable, FlatList, Image, Modal, ScrollView, Alert } from "react-native";
+import {
+  StyleSheet,
+  View,
+  TextInput,
+  Pressable,
+  FlatList,
+  Image,
+  Modal,
+  ScrollView,
+  Alert,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { RouteProp, useRoute } from "@react-navigation/native";
@@ -17,7 +27,12 @@ import { useAuth } from "@/context/AuthContext";
 import { useNavigation } from "@react-navigation/native";
 import { Spacing, BorderRadius, AppColors } from "@/constants/theme";
 import { Message, Conversation } from "@/types";
-import { getMessages, addMessage, updateConversationLastMessage, getConversations } from "@/lib/storage";
+import {
+  getMessages,
+  addMessage,
+  updateConversationLastMessage,
+  getConversations,
+} from "@/lib/storage";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { getApiUrl } from "@/lib/query-client";
 
@@ -57,7 +72,7 @@ export default function ChatScreen() {
 
   const loadConversation = useCallback(async () => {
     const conversations = await getConversations();
-    const conv = conversations.find(c => c.id === conversationId);
+    const conv = conversations.find((c) => c.id === conversationId);
     if (conv) setConversation(conv);
   }, [conversationId]);
 
@@ -66,7 +81,10 @@ export default function ChatScreen() {
 
     try {
       const response = await fetch(
-        new URL(`/api/blocks/check?userId=${user.id}&otherUserId=${conversation.participantId}`, getApiUrl()).href
+        new URL(
+          `/api/blocks/check?userId=${user.id}&otherUserId=${conversation.participantId}`,
+          getApiUrl(),
+        ).href,
       );
       const data = await response.json();
       if (data.success) {
@@ -128,7 +146,7 @@ export default function ChatScreen() {
       conversationId,
       newMessage,
       conversation?.participantId,
-      conversation?.serverConversationId
+      conversation?.serverConversationId,
     );
     await updateConversationLastMessage(conversationId, newMessage.text);
   };
@@ -148,7 +166,9 @@ export default function ChatScreen() {
         body: JSON.stringify({
           reporterId: user.id,
           reportedUserId: conversation.participantId,
-          reason: REPORT_REASONS.find(r => r.id === selectedReason)?.label || selectedReason,
+          reason:
+            REPORT_REASONS.find((r) => r.id === selectedReason)?.label ||
+            selectedReason,
           description: selectedReason === "other" ? otherDescription : null,
         }),
       });
@@ -156,13 +176,19 @@ export default function ChatScreen() {
       const data = await response.json();
 
       if (data.success) {
-        Alert.alert("신고 완료", "신고가 접수되었습니다. 관리자가 확인 후 조치하겠습니다.");
+        Alert.alert(
+          "신고 완료",
+          "신고가 접수되었습니다. 관리자가 확인 후 조치하겠습니다.",
+        );
         setShowReportModal(false);
         setShowMenu(false);
         setSelectedReason("");
         setOtherDescription("");
       } else {
-        Alert.alert("오류", data.message || "신고 처리 중 오류가 발생했습니다.");
+        Alert.alert(
+          "오류",
+          data.message || "신고 처리 중 오류가 발생했습니다.",
+        );
       }
     } catch (error) {
       console.error("Report error:", error);
@@ -183,14 +209,17 @@ export default function ChatScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              const response = await fetch(new URL("/api/blocks", getApiUrl()).href, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  blockerId: user.id,
-                  blockedUserId: conversation.participantId,
-                }),
-              });
+              const response = await fetch(
+                new URL("/api/blocks", getApiUrl()).href,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    blockerId: user.id,
+                    blockedUserId: conversation.participantId,
+                  }),
+                },
+              );
 
               const data = await response.json();
 
@@ -200,7 +229,10 @@ export default function ChatScreen() {
                 Alert.alert("차단 완료", "사용자를 차단했습니다.");
                 navigation.goBack();
               } else {
-                Alert.alert("오류", data.message || "차단 처리 중 오류가 발생했습니다.");
+                Alert.alert(
+                  "오류",
+                  data.message || "차단 처리 중 오류가 발생했습니다.",
+                );
               }
             } catch (error) {
               console.error("Block error:", error);
@@ -208,25 +240,33 @@ export default function ChatScreen() {
             }
           },
         },
-      ]
+      ],
     );
   };
 
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
     const isOwn = item.senderId === user?.id;
-    const showTimestamp = index === messages.length - 1 ||
-      new Date(messages[index + 1]?.timestamp).getTime() - new Date(item.timestamp).getTime() > 300000;
+    const showTimestamp =
+      index === messages.length - 1 ||
+      new Date(messages[index + 1]?.timestamp).getTime() -
+        new Date(item.timestamp).getTime() >
+        300000;
 
     return (
       <Animated.View
-        style={[styles.messageWrapper, isOwn ? styles.ownMessage : styles.otherMessage]}
+        style={[
+          styles.messageWrapper,
+          isOwn ? styles.ownMessage : styles.otherMessage,
+        ]}
         entering={FadeInUp.duration(200)}
       >
         <View
           style={[
             styles.messageBubble,
             {
-              backgroundColor: isOwn ? AppColors.accent : theme.backgroundDefault,
+              backgroundColor: isOwn
+                ? AppColors.accent
+                : theme.backgroundDefault,
             },
           ]}
         >
@@ -243,15 +283,25 @@ export default function ChatScreen() {
               type="small"
               style={[styles.timestamp, { color: theme.textSecondary }]}
             >
-              {new Date(item.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              {new Date(item.timestamp).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </ThemedText>
           ) : null}
           {isOwn ? (
             <View style={styles.readStatus}>
               {item.isRead ? (
-                <Feather name="check-circle" size={12} color={AppColors.success} />
+                <Feather
+                  name="check-circle"
+                  size={12}
+                  color={AppColors.success}
+                />
               ) : (
-                <ThemedText type="small" style={[styles.unreadText, { color: theme.textSecondary }]}>
+                <ThemedText
+                  type="small"
+                  style={[styles.unreadText, { color: theme.textSecondary }]}
+                >
                   읽지않음
                 </ThemedText>
               )}
@@ -267,10 +317,16 @@ export default function ChatScreen() {
       return (
         <View style={styles.emptyContainer}>
           <Feather name="slash" size={48} color={theme.textSecondary} />
-          <ThemedText type="h3" style={{ marginTop: Spacing.lg, marginBottom: Spacing.sm }}>
+          <ThemedText
+            type="h3"
+            style={{ marginTop: Spacing.lg, marginBottom: Spacing.sm }}
+          >
             대화가 끊겼습니다
           </ThemedText>
-          <ThemedText type="body" style={{ color: theme.textSecondary, textAlign: "center" }}>
+          <ThemedText
+            type="body"
+            style={{ color: theme.textSecondary, textAlign: "center" }}
+          >
             상대방이 대화를 차단했습니다
           </ThemedText>
         </View>
@@ -284,7 +340,10 @@ export default function ChatScreen() {
           style={styles.emptyImage}
           resizeMode="contain"
         />
-        <ThemedText type="body" style={{ color: theme.textSecondary, textAlign: "center" }}>
+        <ThemedText
+          type="body"
+          style={{ color: theme.textSecondary, textAlign: "center" }}
+        >
           메시지를 보내 대화를 시작해보세요
         </ThemedText>
       </View>
@@ -323,7 +382,12 @@ export default function ChatScreen() {
         ]}
       >
         {canSendMessages && !hasBlockedMe && !isBlocked ? (
-          <View style={[styles.inputWrapper, { backgroundColor: theme.backgroundDefault }]}>
+          <View
+            style={[
+              styles.inputWrapper,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
             <TextInput
               style={[styles.input, { color: theme.text }]}
               placeholder="메시지를 입력하세요..."
@@ -339,7 +403,9 @@ export default function ChatScreen() {
               style={({ pressed }) => [
                 styles.sendButton,
                 {
-                  backgroundColor: inputText.trim() ? AppColors.accent : theme.backgroundSecondary,
+                  backgroundColor: inputText.trim()
+                    ? AppColors.accent
+                    : theme.backgroundSecondary,
                   opacity: pressed ? 0.8 : 1,
                 },
               ]}
@@ -352,16 +418,40 @@ export default function ChatScreen() {
             </Pressable>
           </View>
         ) : hasBlockedMe ? (
-          <View style={[styles.membershipRequired, { backgroundColor: theme.backgroundSecondary }]}>
+          <View
+            style={[
+              styles.membershipRequired,
+              { backgroundColor: theme.backgroundSecondary },
+            ]}
+          >
             <Feather name="slash" size={16} color={theme.textSecondary} />
-            <ThemedText type="small" style={{ color: theme.textSecondary, marginLeft: Spacing.sm, flex: 1 }}>
+            <ThemedText
+              type="small"
+              style={{
+                color: theme.textSecondary,
+                marginLeft: Spacing.sm,
+                flex: 1,
+              }}
+            >
               상대방이 대화를 차단했습니다
             </ThemedText>
           </View>
         ) : isBlocked ? (
-          <View style={[styles.membershipRequired, { backgroundColor: theme.backgroundSecondary }]}>
+          <View
+            style={[
+              styles.membershipRequired,
+              { backgroundColor: theme.backgroundSecondary },
+            ]}
+          >
             <Feather name="slash" size={16} color={theme.textSecondary} />
-            <ThemedText type="small" style={{ color: theme.textSecondary, marginLeft: Spacing.sm, flex: 1 }}>
+            <ThemedText
+              type="small"
+              style={{
+                color: theme.textSecondary,
+                marginLeft: Spacing.sm,
+                flex: 1,
+              }}
+            >
               차단한 사용자입니다
             </ThemedText>
           </View>
@@ -374,15 +464,25 @@ export default function ChatScreen() {
                 navigation.navigate("Membership" as never);
               }
             }}
-            style={[styles.membershipRequired, { backgroundColor: AppColors.accent + "20" }]}
+            style={[
+              styles.membershipRequired,
+              { backgroundColor: AppColors.accent + "20" },
+            ]}
           >
             <Feather name="lock" size={16} color={AppColors.accent} />
-            <ThemedText type="small" style={{ color: AppColors.accent, marginLeft: Spacing.sm, flex: 1 }}>
+            <ThemedText
+              type="small"
+              style={{
+                color: AppColors.accent,
+                marginLeft: Spacing.sm,
+                flex: 1,
+              }}
+            >
               {user?.gender === "female" && !user?.phoneVerified
                 ? "휴대폰 인증이 필요합니다. 탭하여 인증하세요."
                 : !user?.phoneVerified
-                ? "휴대폰 인증이 필요합니다. 탭하여 인증하세요."
-                : "킹 멤버십이 필요합니다. 탭하여 가입하세요."}
+                  ? "휴대폰 인증이 필요합니다. 탭하여 인증하세요."
+                  : "킹 멤버십이 필요합니다. 탭하여 가입하세요."}
             </ThemedText>
             <Feather name="chevron-right" size={16} color={AppColors.accent} />
           </Pressable>
@@ -401,7 +501,10 @@ export default function ChatScreen() {
           onPress={() => setShowMenu(false)}
         >
           <Pressable
-            style={[styles.menuContainer, { backgroundColor: theme.backgroundDefault }]}
+            style={[
+              styles.menuContainer,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
             onPress={(e) => e.stopPropagation()}
           >
             <Pressable
@@ -412,16 +515,19 @@ export default function ChatScreen() {
               }}
             >
               <Feather name="flag" size={20} color={AppColors.warning} />
-              <ThemedText type="body" style={{ marginLeft: Spacing.md, color: AppColors.warning }}>
+              <ThemedText
+                type="body"
+                style={{ marginLeft: Spacing.md, color: AppColors.warning }}
+              >
                 신고하기
               </ThemedText>
             </Pressable>
-            <Pressable
-              style={styles.menuItem}
-              onPress={handleBlock}
-            >
+            <Pressable style={styles.menuItem} onPress={handleBlock}>
               <Feather name="slash" size={20} color={AppColors.error} />
-              <ThemedText type="body" style={{ marginLeft: Spacing.md, color: AppColors.error }}>
+              <ThemedText
+                type="body"
+                style={{ marginLeft: Spacing.md, color: AppColors.error }}
+              >
                 차단하기
               </ThemedText>
             </Pressable>
@@ -437,7 +543,12 @@ export default function ChatScreen() {
         onRequestClose={() => setShowReportModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.reportContainer, { backgroundColor: theme.backgroundDefault }]}>
+          <View
+            style={[
+              styles.reportContainer,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
             <View style={styles.modalHeader}>
               <ThemedText type="h3">신고하기</ThemedText>
               <Pressable onPress={() => setShowReportModal(false)}>
@@ -445,8 +556,14 @@ export default function ChatScreen() {
               </Pressable>
             </View>
 
-            <ScrollView style={styles.reasonList} showsVerticalScrollIndicator={false}>
-              <ThemedText type="body" style={{ marginBottom: Spacing.md, color: theme.textSecondary }}>
+            <ScrollView
+              style={styles.reasonList}
+              showsVerticalScrollIndicator={false}
+            >
+              <ThemedText
+                type="body"
+                style={{ marginBottom: Spacing.md, color: theme.textSecondary }}
+              >
                 신고 사유를 선택해주세요
               </ThemedText>
               {REPORT_REASONS.map((reason) => (
@@ -455,18 +572,36 @@ export default function ChatScreen() {
                   style={[
                     styles.reasonItem,
                     {
-                      backgroundColor: selectedReason === reason.id ? AppColors.accent + "20" : theme.backgroundSecondary,
-                      borderColor: selectedReason === reason.id ? AppColors.accent : theme.border,
+                      backgroundColor:
+                        selectedReason === reason.id
+                          ? AppColors.accent + "20"
+                          : theme.backgroundSecondary,
+                      borderColor:
+                        selectedReason === reason.id
+                          ? AppColors.accent
+                          : theme.border,
                     },
                   ]}
                   onPress={() => setSelectedReason(reason.id)}
                 >
-                  <View style={[
-                    styles.radioButton,
-                    { borderColor: selectedReason === reason.id ? AppColors.accent : theme.textSecondary }
-                  ]}>
+                  <View
+                    style={[
+                      styles.radioButton,
+                      {
+                        borderColor:
+                          selectedReason === reason.id
+                            ? AppColors.accent
+                            : theme.textSecondary,
+                      },
+                    ]}
+                  >
                     {selectedReason === reason.id && (
-                      <View style={[styles.radioButtonInner, { backgroundColor: AppColors.accent }]} />
+                      <View
+                        style={[
+                          styles.radioButtonInner,
+                          { backgroundColor: AppColors.accent },
+                        ]}
+                      />
                     )}
                   </View>
                   <ThemedText type="body">{reason.label}</ThemedText>

@@ -1,5 +1,16 @@
 import React, { useState, useRef } from "react";
-import { StyleSheet, View, ScrollView, Image, Pressable, Alert, Dimensions, FlatList, NativeScrollEvent, NativeSyntheticEvent } from "react-native";
+import {
+  StyleSheet,
+  View,
+  ScrollView,
+  Image,
+  Pressable,
+  Alert,
+  Dimensions,
+  FlatList,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
@@ -23,7 +34,8 @@ const PHOTO_WIDTH = width - Spacing.lg * 2;
 
 export default function UserProfileScreen() {
   const route = useRoute<RouteProp<RootStackParamList, "UserProfile">>();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user: selectedUser } = route.params;
   const { theme, isDark } = useTheme();
   const { user: currentUser } = useAuth();
@@ -32,12 +44,13 @@ export default function UserProfileScreen() {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
-  const approvedPhotos = selectedUser.photos?.filter(p => p.approved) || [];
+  const approvedPhotos = selectedUser.photos?.filter((p) => p.approved) || [];
   const hasPhotos = approvedPhotos.length > 0;
 
-  const defaultAvatar = selectedUser.gender === "female"
-    ? require("../../assets/images/default-avatar-female.png")
-    : require("../../assets/images/default-avatar-male.png");
+  const defaultAvatar =
+    selectedUser.gender === "female"
+      ? require("../../assets/images/default-avatar-female.png")
+      : require("../../assets/images/default-avatar-male.png");
 
   const canStartChat = () => {
     if (!currentUser) return false;
@@ -67,14 +80,15 @@ export default function UserProfileScreen() {
             { text: "취소", style: "cancel" },
             {
               text: "가입하기",
-              onPress: () => navigation.navigate("Main", { screen: "MembershipTab" } as any),
+              onPress: () =>
+                navigation.navigate("Main", { screen: "MembershipTab" } as any),
             },
-          ]
+          ],
         );
       } else {
         Alert.alert(
           "인증 필요",
-          "대화를 시작하려면 휴대폰 인증을 완료해주세요."
+          "대화를 시작하려면 휴대폰 인증을 완료해주세요.",
         );
       }
       return;
@@ -82,13 +96,20 @@ export default function UserProfileScreen() {
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const conversation = await createConversation(selectedUser, currentUser.id);
-    navigation.navigate("Chat", { conversationId: conversation.id, participantName: selectedUser.name });
+    navigation.navigate("Chat", {
+      conversationId: conversation.id,
+      participantName: selectedUser.name,
+    });
   };
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(contentOffsetX / PHOTO_WIDTH);
-    if (index !== currentPhotoIndex && index >= 0 && index < approvedPhotos.length) {
+    if (
+      index !== currentPhotoIndex &&
+      index >= 0 &&
+      index < approvedPhotos.length
+    ) {
       setCurrentPhotoIndex(index);
       Haptics.selectionAsync();
     }
@@ -103,7 +124,10 @@ export default function UserProfileScreen() {
   const renderPhotoCarousel = () => {
     if (!hasPhotos) {
       return (
-        <Animated.View style={styles.photoContainer} entering={FadeIn.duration(400)}>
+        <Animated.View
+          style={styles.photoContainer}
+          entering={FadeIn.duration(400)}
+        >
           <Image source={defaultAvatar} style={styles.mainPhoto} />
           {selectedUser.isKingMember && selectedUser.gender === "male" ? (
             <View style={styles.crownBadge}>
@@ -118,7 +142,10 @@ export default function UserProfileScreen() {
     }
 
     return (
-      <Animated.View style={styles.photoContainer} entering={FadeIn.duration(400)}>
+      <Animated.View
+        style={styles.photoContainer}
+        entering={FadeIn.duration(400)}
+      >
         <FlatList
           ref={flatListRef}
           data={approvedPhotos}
@@ -133,7 +160,7 @@ export default function UserProfileScreen() {
           snapToInterval={PHOTO_WIDTH}
           snapToAlignment="center"
         />
-        
+
         {selectedUser.isKingMember && selectedUser.gender === "male" ? (
           <View style={styles.crownBadge}>
             <Image
@@ -151,9 +178,10 @@ export default function UserProfileScreen() {
                 style={[
                   styles.indicator,
                   {
-                    backgroundColor: index === currentPhotoIndex 
-                      ? "#fff" 
-                      : "rgba(255,255,255,0.4)",
+                    backgroundColor:
+                      index === currentPhotoIndex
+                        ? "#fff"
+                        : "rgba(255,255,255,0.4)",
                   },
                 ]}
               />
@@ -186,25 +214,43 @@ export default function UserProfileScreen() {
       >
         {renderPhotoCarousel()}
 
-        <Animated.View style={styles.header} entering={FadeInUp.delay(100).duration(400)}>
+        <Animated.View
+          style={styles.header}
+          entering={FadeInUp.delay(100).duration(400)}
+        >
           <View style={styles.nameRow}>
-            <ThemedText type="h2">{selectedUser.name}, {selectedUser.age}</ThemedText>
+            <ThemedText type="h2">
+              {selectedUser.name}, {selectedUser.age}
+            </ThemedText>
             {selectedUser.isVerified ? (
-              <View style={[styles.verifiedBadge, { backgroundColor: AppColors.success }]}>
+              <View
+                style={[
+                  styles.verifiedBadge,
+                  { backgroundColor: AppColors.success },
+                ]}
+              >
                 <Feather name="check" size={14} color="#fff" />
               </View>
             ) : null}
           </View>
           <View style={styles.locationRow}>
             <Feather name="map-pin" size={16} color={theme.textSecondary} />
-            <ThemedText type="body" style={{ color: theme.textSecondary, marginLeft: Spacing.xs }}>
+            <ThemedText
+              type="body"
+              style={{ color: theme.textSecondary, marginLeft: Spacing.xs }}
+            >
               {selectedUser.location}
             </ThemedText>
           </View>
         </Animated.View>
 
-        <Animated.View style={styles.section} entering={FadeInUp.delay(200).duration(400)}>
-          <ThemedText type="h4" style={styles.sectionTitle}>소개</ThemedText>
+        <Animated.View
+          style={styles.section}
+          entering={FadeInUp.delay(200).duration(400)}
+        >
+          <ThemedText type="h4" style={styles.sectionTitle}>
+            소개
+          </ThemedText>
           <BlurView intensity={40} tint="dark" style={styles.sectionContent}>
             <View style={styles.infoRow}>
               <Feather name="briefcase" size={18} color={theme.link} />
@@ -213,23 +259,36 @@ export default function UserProfileScreen() {
               </ThemedText>
             </View>
             {selectedUser.bio ? (
-              <ThemedText type="body" style={[styles.bio, { color: theme.textSecondary }]}>
+              <ThemedText
+                type="body"
+                style={[styles.bio, { color: theme.textSecondary }]}
+              >
                 {selectedUser.bio}
               </ThemedText>
             ) : null}
           </BlurView>
         </Animated.View>
 
-        <Animated.View style={styles.section} entering={FadeInUp.delay(300).duration(400)}>
-          <ThemedText type="h4" style={styles.sectionTitle}>취미</ThemedText>
+        <Animated.View
+          style={styles.section}
+          entering={FadeInUp.delay(300).duration(400)}
+        >
+          <ThemedText type="h4" style={styles.sectionTitle}>
+            취미
+          </ThemedText>
           <BlurView intensity={40} tint="dark" style={styles.sectionContent}>
             <TagList tags={selectedUser.hobbies} variant="primary" />
           </BlurView>
         </Animated.View>
 
         {selectedUser.foodPreferences.length > 0 ? (
-          <Animated.View style={styles.section} entering={FadeInUp.delay(400).duration(400)}>
-            <ThemedText type="h4" style={styles.sectionTitle}>음식 취향</ThemedText>
+          <Animated.View
+            style={styles.section}
+            entering={FadeInUp.delay(400).duration(400)}
+          >
+            <ThemedText type="h4" style={styles.sectionTitle}>
+              음식 취향
+            </ThemedText>
             <BlurView intensity={40} tint="dark" style={styles.sectionContent}>
               <TagList tags={selectedUser.foodPreferences} variant="accent" />
             </BlurView>
@@ -250,12 +309,18 @@ export default function UserProfileScreen() {
             style={({ pressed }) => [
               styles.chatButtonInner,
               {
-                backgroundColor: canStartChat() ? AppColors.accent : theme.backgroundSecondary,
+                backgroundColor: canStartChat()
+                  ? AppColors.accent
+                  : theme.backgroundSecondary,
                 opacity: pressed ? 0.9 : 1,
               },
             ]}
           >
-            <Feather name="message-circle" size={22} color={canStartChat() ? "#fff" : theme.textSecondary} />
+            <Feather
+              name="message-circle"
+              size={22}
+              color={canStartChat() ? "#fff" : theme.textSecondary}
+            />
             <ThemedText
               type="body"
               style={{
@@ -264,7 +329,11 @@ export default function UserProfileScreen() {
                 marginLeft: Spacing.sm,
               }}
             >
-              {canStartChat() ? "채팅 시작" : currentUser?.gender === "male" ? "킹 멤버십 필요" : "인증 필요"}
+              {canStartChat()
+                ? "채팅 시작"
+                : currentUser?.gender === "male"
+                  ? "킹 멤버십 필요"
+                  : "인증 필요"}
             </ThemedText>
           </Pressable>
         </BlurView>

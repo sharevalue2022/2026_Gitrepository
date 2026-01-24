@@ -55,11 +55,20 @@ export function UserCardSkeleton() {
   const { theme } = useTheme();
 
   return (
-    <View style={[skeletonStyles.card, { backgroundColor: theme.backgroundDefault }]}>
+    <View
+      style={[
+        skeletonStyles.card,
+        { backgroundColor: theme.backgroundDefault },
+      ]}
+    >
       <SkeletonLoader height={150} borderRadius={0} />
       <View style={skeletonStyles.cardContent}>
         <SkeletonLoader width="70%" height={18} />
-        <SkeletonLoader width="50%" height={14} style={{ marginTop: Spacing.sm }} />
+        <SkeletonLoader
+          width="50%"
+          height={14}
+          style={{ marginTop: Spacing.sm }}
+        />
       </View>
     </View>
   );
@@ -73,7 +82,11 @@ export function ConversationRowSkeleton() {
       <SkeletonLoader width={56} height={56} borderRadius={28} />
       <View style={skeletonStyles.rowContent}>
         <SkeletonLoader width="60%" height={16} />
-        <SkeletonLoader width="80%" height={14} style={{ marginTop: Spacing.sm }} />
+        <SkeletonLoader
+          width="80%"
+          height={14}
+          style={{ marginTop: Spacing.sm }}
+        />
       </View>
     </View>
   );

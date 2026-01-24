@@ -19,10 +19,15 @@ import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { getApiUrl } from "@/lib/query-client";
 
 type PhoneVerificationScreenProps = {
-  navigation: NativeStackNavigationProp<AuthStackParamList | RootStackParamList, "PhoneVerification">;
+  navigation: NativeStackNavigationProp<
+    AuthStackParamList | RootStackParamList,
+    "PhoneVerification"
+  >;
 };
 
-export default function PhoneVerificationScreen({ navigation }: PhoneVerificationScreenProps) {
+export default function PhoneVerificationScreen({
+  navigation,
+}: PhoneVerificationScreenProps) {
   const route = useRoute<RouteProp<RootStackParamList, "PhoneVerification">>();
   const fromProfile = route.params?.fromProfile ?? false;
   const insets = useSafeAreaInsets();
@@ -43,16 +48,19 @@ export default function PhoneVerificationScreen({ navigation }: PhoneVerificatio
     setIsLoading(true);
     setError("");
     setDemoCode("");
-    
+
     try {
-      const response = await fetch(new URL("/api/verification/send", getApiUrl()).toString(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber: phone }),
-      });
-      
+      const response = await fetch(
+        new URL("/api/verification/send", getApiUrl()).toString(),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phoneNumber: phone }),
+        },
+      );
+
       const data = await response.json();
-      
+
       if (data.success) {
         setCodeSent(true);
         if (data.demoCode) {
@@ -69,7 +77,7 @@ export default function PhoneVerificationScreen({ navigation }: PhoneVerificatio
       setError("서버 연결에 실패했습니다. 다시 시도해주세요.");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
-    
+
     setIsLoading(false);
   };
 
@@ -90,16 +98,19 @@ export default function PhoneVerificationScreen({ navigation }: PhoneVerificatio
   const verifyCode = async (enteredCode: string) => {
     setIsLoading(true);
     setError("");
-    
+
     try {
-      const response = await fetch(new URL("/api/verification/verify", getApiUrl()).toString(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber: phone, code: enteredCode }),
-      });
-      
+      const response = await fetch(
+        new URL("/api/verification/verify", getApiUrl()).toString(),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phoneNumber: phone, code: enteredCode }),
+        },
+      );
+
       const data = await response.json();
-      
+
       if (data.success) {
         setIsVerified(true);
         await updateUser({ phoneVerified: true, isVerified: true });
@@ -117,7 +128,7 @@ export default function PhoneVerificationScreen({ navigation }: PhoneVerificatio
       inputRefs.current[0]?.focus();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
-    
+
     setIsLoading(false);
   };
 
@@ -131,13 +142,20 @@ export default function PhoneVerificationScreen({ navigation }: PhoneVerificatio
 
   if (isVerified) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+      <View
+        style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
+      >
         <LinearGradient
           colors={["#0A0A0A", "#141414", "#0A0A0A"]}
           style={StyleSheet.absoluteFill}
         />
-        <View style={[styles.content, { paddingTop: insets.top + Spacing["5xl"] }]}>
-          <Animated.View style={styles.successContainer} entering={FadeIn.duration(600)}>
+        <View
+          style={[styles.content, { paddingTop: insets.top + Spacing["5xl"] }]}
+        >
+          <Animated.View
+            style={styles.successContainer}
+            entering={FadeIn.duration(600)}
+          >
             <BlurView intensity={60} tint="dark" style={styles.successBlur}>
               <Image
                 source={require("../../assets/images/verification-success.png")}
@@ -151,12 +169,18 @@ export default function PhoneVerificationScreen({ navigation }: PhoneVerificatio
                 type="body"
                 style={[styles.successMessage, { color: theme.textSecondary }]}
               >
-                휴대폰 번호가 인증되었습니다. 이제 다른 회원들과 대화를 시작할 수 있습니다.
+                휴대폰 번호가 인증되었습니다. 이제 다른 회원들과 대화를 시작할
+                수 있습니다.
               </ThemedText>
             </BlurView>
           </Animated.View>
         </View>
-        <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing["2xl"] }]}>
+        <View
+          style={[
+            styles.footer,
+            { paddingBottom: insets.bottom + Spacing["2xl"] },
+          ]}
+        >
           <Button onPress={handleContinue} style={styles.button}>
             시작하기
           </Button>
@@ -171,7 +195,9 @@ export default function PhoneVerificationScreen({ navigation }: PhoneVerificatio
         colors={["#0A0A0A", "#141414", "#0A0A0A"]}
         style={StyleSheet.absoluteFill}
       />
-      <View style={[styles.content, { paddingTop: insets.top + Spacing["4xl"] }]}>
+      <View
+        style={[styles.content, { paddingTop: insets.top + Spacing["4xl"] }]}
+      >
         <Animated.View entering={FadeInUp.delay(100).duration(500)}>
           <ThemedText type="h2" style={styles.title}>
             {codeSent ? "인증번호 입력" : "휴대폰 인증"}
@@ -187,7 +213,10 @@ export default function PhoneVerificationScreen({ navigation }: PhoneVerificatio
         </Animated.View>
 
         {!codeSent ? (
-          <Animated.View entering={FadeIn.delay(200).duration(500)} style={styles.form}>
+          <Animated.View
+            entering={FadeIn.delay(200).duration(500)}
+            style={styles.form}
+          >
             <Input
               label="휴대폰 번호"
               placeholder="010-1234-5678"
@@ -205,22 +234,31 @@ export default function PhoneVerificationScreen({ navigation }: PhoneVerificatio
             </Button>
           </Animated.View>
         ) : (
-          <Animated.View entering={FadeIn.delay(200).duration(500)} style={styles.codeContainer}>
+          <Animated.View
+            entering={FadeIn.delay(200).duration(500)}
+            style={styles.codeContainer}
+          >
             <View style={styles.codeInputs}>
               {code.map((digit, index) => (
                 <TextInput
                   key={index}
-                  ref={(ref) => { inputRefs.current[index] = ref; }}
+                  ref={(ref) => {
+                    inputRefs.current[index] = ref;
+                  }}
                   style={[
                     styles.codeInput,
                     {
                       backgroundColor: "rgba(255,255,255,0.08)",
-                      borderColor: digit ? AppColors.accent : "rgba(255,255,255,0.15)",
+                      borderColor: digit
+                        ? AppColors.accent
+                        : "rgba(255,255,255,0.15)",
                       color: "#FFFFFF",
                     },
                   ]}
                   value={digit}
-                  onChangeText={(value) => handleCodeChange(value.slice(-1), index)}
+                  onChangeText={(value) =>
+                    handleCodeChange(value.slice(-1), index)
+                  }
                   keyboardType="number-pad"
                   maxLength={1}
                   selectTextOnFocus

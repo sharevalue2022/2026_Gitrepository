@@ -1,5 +1,14 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { StyleSheet, View, FlatList, RefreshControl, Pressable, Image, Modal, ScrollView } from "react-native";
+import {
+  StyleSheet,
+  View,
+  FlatList,
+  RefreshControl,
+  Pressable,
+  Image,
+  Modal,
+  ScrollView,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -23,7 +32,12 @@ import { RootStackParamList } from "@/navigation/RootStackNavigator";
 type AgeRange = "20~25" | "25~30" | "30~35" | "35~40" | null;
 type LocationFilter = string | null;
 
-const AGE_RANGES: { label: string; value: AgeRange; min: number; max: number }[] = [
+const AGE_RANGES: {
+  label: string;
+  value: AgeRange;
+  min: number;
+  max: number;
+}[] = [
   { label: "20~25세", value: "20~25", min: 20, max: 25 },
   { label: "25~30세", value: "25~30", min: 25, max: 30 },
   { label: "30~35세", value: "30~35", min: 30, max: 35 },
@@ -35,7 +49,8 @@ const LOCATIONS = ["서울", "경기", "부산", "인천", "대구", "대전", "
 export default function DiscoverScreen() {
   const { theme, isDark } = useTheme();
   const { user } = useAuth();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
 
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
@@ -54,7 +69,9 @@ export default function DiscoverScreen() {
     const fetchedUsers = await getUsers(user.id, targetGender);
 
     // Sort by discovery weight (profile completeness + activity)
-    fetchedUsers.sort((a, b) => calculateDiscoveryWeight(b) - calculateDiscoveryWeight(a));
+    fetchedUsers.sort(
+      (a, b) => calculateDiscoveryWeight(b) - calculateDiscoveryWeight(a),
+    );
 
     setAllUsers(fetchedUsers);
     setIsLoading(false);
@@ -67,20 +84,20 @@ export default function DiscoverScreen() {
 
   const filteredUsers = useMemo(() => {
     let result = [...allUsers];
-    
+
     if (selectedAgeRange) {
-      const range = AGE_RANGES.find(r => r.value === selectedAgeRange);
+      const range = AGE_RANGES.find((r) => r.value === selectedAgeRange);
       if (range) {
-        result = result.filter(u => u.age >= range.min && u.age < range.max);
+        result = result.filter((u) => u.age >= range.min && u.age < range.max);
       }
     }
-    
+
     if (selectedLocations.length > 0) {
-      result = result.filter(u => 
-        selectedLocations.some(loc => u.location.includes(loc))
+      result = result.filter((u) =>
+        selectedLocations.some((loc) => u.location.includes(loc)),
       );
     }
-    
+
     return result;
   }, [allUsers, selectedAgeRange, selectedLocations]);
 
@@ -100,15 +117,15 @@ export default function DiscoverScreen() {
 
   const toggleAgeRange = (range: AgeRange) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedAgeRange(prev => prev === range ? null : range);
+    setSelectedAgeRange((prev) => (prev === range ? null : range));
   };
 
   const toggleLocation = (location: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedLocations(prev => 
-      prev.includes(location) 
-        ? prev.filter(l => l !== location)
-        : [...prev, location]
+    setSelectedLocations((prev) =>
+      prev.includes(location)
+        ? prev.filter((l) => l !== location)
+        : [...prev, location],
     );
   };
 
@@ -125,9 +142,10 @@ export default function DiscoverScreen() {
     return count;
   };
 
-  const avatarSource = user?.gender === "female"
-    ? require("../../assets/images/default-avatar-female.png")
-    : require("../../assets/images/default-avatar-male.png");
+  const avatarSource =
+    user?.gender === "female"
+      ? require("../../assets/images/default-avatar-female.png")
+      : require("../../assets/images/default-avatar-male.png");
 
   const renderHeader = () => (
     <Animated.View entering={FadeIn.duration(400)}>
@@ -138,7 +156,10 @@ export default function DiscoverScreen() {
         <ThemedText type="h2" style={styles.greeting}>
           {user?.name || "회원"}님, 안녕하세요.
         </ThemedText>
-        <ThemedText type="body" style={[styles.subtitle, { color: theme.textSecondary }]}>
+        <ThemedText
+          type="body"
+          style={[styles.subtitle, { color: theme.textSecondary }]}
+        >
           특별한 경험을 시작해보세요
         </ThemedText>
       </View>
@@ -148,7 +169,11 @@ export default function DiscoverScreen() {
           onPress={handleFilterPress}
           style={[
             styles.filterIconButton,
-            { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" },
+            {
+              backgroundColor: isDark
+                ? "rgba(255,255,255,0.08)"
+                : "rgba(0,0,0,0.05)",
+            },
           ]}
         >
           <Feather name="sliders" size={18} color={theme.text} />
@@ -161,8 +186,8 @@ export default function DiscoverScreen() {
           ) : null}
         </Pressable>
 
-        <ScrollView 
-          horizontal 
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterChipsScroll}
         >
@@ -172,26 +197,45 @@ export default function DiscoverScreen() {
               style={[
                 styles.filterChip,
                 styles.activeFilterChip,
-                { backgroundColor: isDark ? "rgba(107,91,149,0.3)" : "rgba(107,91,149,0.15)" },
+                {
+                  backgroundColor: isDark
+                    ? "rgba(107,91,149,0.3)"
+                    : "rgba(107,91,149,0.15)",
+                },
               ]}
             >
               <ThemedText type="small" style={styles.filterText}>
-                나이 {AGE_RANGES.find(r => r.value === selectedAgeRange)?.label}
+                나이{" "}
+                {AGE_RANGES.find((r) => r.value === selectedAgeRange)?.label}
               </ThemedText>
-              <Feather name="x" size={14} color={theme.text} style={{ marginLeft: 4 }} />
+              <Feather
+                name="x"
+                size={14}
+                color={theme.text}
+                style={{ marginLeft: 4 }}
+              />
             </Pressable>
           ) : (
             <Pressable
               onPress={handleFilterPress}
               style={[
                 styles.filterChip,
-                { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" },
+                {
+                  backgroundColor: isDark
+                    ? "rgba(255,255,255,0.08)"
+                    : "rgba(0,0,0,0.05)",
+                },
               ]}
             >
               <ThemedText type="small" style={styles.filterText}>
                 나이
               </ThemedText>
-              <Feather name="chevron-down" size={14} color={theme.textSecondary} style={{ marginLeft: 2 }} />
+              <Feather
+                name="chevron-down"
+                size={14}
+                color={theme.textSecondary}
+                style={{ marginLeft: 2 }}
+              />
             </Pressable>
           )}
 
@@ -201,26 +245,44 @@ export default function DiscoverScreen() {
               style={[
                 styles.filterChip,
                 styles.activeFilterChip,
-                { backgroundColor: isDark ? "rgba(107,91,149,0.3)" : "rgba(107,91,149,0.15)" },
+                {
+                  backgroundColor: isDark
+                    ? "rgba(107,91,149,0.3)"
+                    : "rgba(107,91,149,0.15)",
+                },
               ]}
             >
               <ThemedText type="small" style={styles.filterText}>
                 {selectedLocations.join(", ")}
               </ThemedText>
-              <Feather name="x" size={14} color={theme.text} style={{ marginLeft: 4 }} />
+              <Feather
+                name="x"
+                size={14}
+                color={theme.text}
+                style={{ marginLeft: 4 }}
+              />
             </Pressable>
           ) : (
             <Pressable
               onPress={handleFilterPress}
               style={[
                 styles.filterChip,
-                { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" },
+                {
+                  backgroundColor: isDark
+                    ? "rgba(255,255,255,0.08)"
+                    : "rgba(0,0,0,0.05)",
+                },
               ]}
             >
               <ThemedText type="small" style={styles.filterText}>
                 지역
               </ThemedText>
-              <Feather name="chevron-down" size={14} color={theme.textSecondary} style={{ marginLeft: 2 }} />
+              <Feather
+                name="chevron-down"
+                size={14}
+                color={theme.textSecondary}
+                style={{ marginLeft: 2 }}
+              />
             </Pressable>
           )}
         </ScrollView>
@@ -228,12 +290,14 @@ export default function DiscoverScreen() {
     </Animated.View>
   );
 
-  const renderItem = ({ item, index }: { item: UserProfile; index: number }) => (
-    <UserCard
-      user={item}
-      onPress={() => handleUserPress(item)}
-      index={index}
-    />
+  const renderItem = ({
+    item,
+    index,
+  }: {
+    item: UserProfile;
+    index: number;
+  }) => (
+    <UserCard user={item} onPress={() => handleUserPress(item)} index={index} />
   );
 
   const renderEmpty = () => {
@@ -252,10 +316,15 @@ export default function DiscoverScreen() {
     return (
       <EmptyState
         image={require("../../assets/images/empty-discover.png")}
-        title={getActiveFilterCount() > 0 ? "조건에 맞는 회원이 없습니다" : "활동 중인 회원이 없습니다"}
-        message={getActiveFilterCount() > 0 
-          ? "필터 조건을 변경해보세요."
-          : "나중에 다시 확인해주세요. 새로운 회원들이 곧 활동을 시작할 거예요."
+        title={
+          getActiveFilterCount() > 0
+            ? "조건에 맞는 회원이 없습니다"
+            : "활동 중인 회원이 없습니다"
+        }
+        message={
+          getActiveFilterCount() > 0
+            ? "필터 조건을 변경해보세요."
+            : "나중에 다시 확인해주세요. 새로운 회원들이 곧 활동을 시작할 거예요."
         }
       />
     );
@@ -269,11 +338,16 @@ export default function DiscoverScreen() {
       onRequestClose={() => setShowFilterModal(false)}
     >
       <View style={styles.modalOverlay}>
-        <Pressable 
-          style={styles.modalBackdrop} 
-          onPress={() => setShowFilterModal(false)} 
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setShowFilterModal(false)}
         />
-        <View style={[styles.modalContent, { backgroundColor: theme.backgroundDefault }]}>
+        <View
+          style={[
+            styles.modalContent,
+            { backgroundColor: theme.backgroundDefault },
+          ]}
+        >
           <View style={styles.modalHeader}>
             <ThemedText type="h3">필터</ThemedText>
             <Pressable onPress={() => setShowFilterModal(false)}>
@@ -283,7 +357,9 @@ export default function DiscoverScreen() {
 
           <ScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.filterSection}>
-              <ThemedText type="h4" style={styles.filterSectionTitle}>나이</ThemedText>
+              <ThemedText type="h4" style={styles.filterSectionTitle}>
+                나이
+              </ThemedText>
               <View style={styles.filterOptions}>
                 {AGE_RANGES.map((range) => (
                   <Pressable
@@ -292,10 +368,18 @@ export default function DiscoverScreen() {
                     style={[
                       styles.filterOption,
                       {
-                        backgroundColor: selectedAgeRange === range.value
-                          ? (isDark ? "rgba(107,91,149,0.4)" : "rgba(107,91,149,0.2)")
-                          : (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"),
-                        borderColor: selectedAgeRange === range.value ? "#6B5B95" : "transparent",
+                        backgroundColor:
+                          selectedAgeRange === range.value
+                            ? isDark
+                              ? "rgba(107,91,149,0.4)"
+                              : "rgba(107,91,149,0.2)"
+                            : isDark
+                              ? "rgba(255,255,255,0.08)"
+                              : "rgba(0,0,0,0.05)",
+                        borderColor:
+                          selectedAgeRange === range.value
+                            ? "#6B5B95"
+                            : "transparent",
                         borderWidth: selectedAgeRange === range.value ? 1 : 0,
                       },
                     ]}
@@ -307,7 +391,9 @@ export default function DiscoverScreen() {
             </View>
 
             <View style={styles.filterSection}>
-              <ThemedText type="h4" style={styles.filterSectionTitle}>지역</ThemedText>
+              <ThemedText type="h4" style={styles.filterSectionTitle}>
+                지역
+              </ThemedText>
               <View style={styles.filterOptions}>
                 {LOCATIONS.map((location) => (
                   <Pressable
@@ -317,10 +403,18 @@ export default function DiscoverScreen() {
                       styles.filterOption,
                       {
                         backgroundColor: selectedLocations.includes(location)
-                          ? (isDark ? "rgba(107,91,149,0.4)" : "rgba(107,91,149,0.2)")
-                          : (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"),
-                        borderColor: selectedLocations.includes(location) ? "#6B5B95" : "transparent",
-                        borderWidth: selectedLocations.includes(location) ? 1 : 0,
+                          ? isDark
+                            ? "rgba(107,91,149,0.4)"
+                            : "rgba(107,91,149,0.2)"
+                          : isDark
+                            ? "rgba(255,255,255,0.08)"
+                            : "rgba(0,0,0,0.05)",
+                        borderColor: selectedLocations.includes(location)
+                          ? "#6B5B95"
+                          : "transparent",
+                        borderWidth: selectedLocations.includes(location)
+                          ? 1
+                          : 0,
                       },
                     ]}
                   >
@@ -334,13 +428,21 @@ export default function DiscoverScreen() {
           <View style={styles.modalFooter}>
             <Pressable
               onPress={clearFilters}
-              style={[styles.modalButton, styles.clearButton, { borderColor: theme.border }]}
+              style={[
+                styles.modalButton,
+                styles.clearButton,
+                { borderColor: theme.border },
+              ]}
             >
               <ThemedText type="body">초기화</ThemedText>
             </Pressable>
             <Pressable
               onPress={() => setShowFilterModal(false)}
-              style={[styles.modalButton, styles.applyButton, { backgroundColor: "#6B5B95" }]}
+              style={[
+                styles.modalButton,
+                styles.applyButton,
+                { backgroundColor: "#6B5B95" },
+              ]}
             >
               <ThemedText type="body" style={{ color: "#fff" }}>
                 {filteredUsers.length}명 보기

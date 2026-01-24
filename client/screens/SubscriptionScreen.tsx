@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import { StyleSheet, View, Image, ScrollView, Modal, Pressable } from "react-native";
+import {
+  StyleSheet,
+  View,
+  Image,
+  ScrollView,
+  Modal,
+  Pressable,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { CommonActions } from "@react-navigation/native";
@@ -30,7 +37,9 @@ const BENEFITS = [
   { icon: "heart" as const, text: "고급 매칭 기능 이용" },
 ];
 
-export default function SubscriptionScreen({ navigation }: SubscriptionScreenProps) {
+export default function SubscriptionScreen({
+  navigation,
+}: SubscriptionScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
   const { user, completeOnboarding } = useAuth();
@@ -46,16 +55,16 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
 
   const handlePaymentConfirm = async () => {
     if (!user?.id) return;
-    
+
     setIsProcessing(true);
     try {
       const response = await apiRequest("POST", "/api/payment-requests", {
         userId: user.id,
         depositorName: depositorName.trim() || null,
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setShowPaymentModal(false);
@@ -94,13 +103,19 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <Animated.View style={styles.header} entering={FadeIn.delay(100).duration(600)}>
+        <Animated.View
+          style={styles.header}
+          entering={FadeIn.delay(100).duration(600)}
+        >
           <Image
             source={require("../../assets/images/king-crown.png")}
             style={styles.crownImage}
             resizeMode="contain"
           />
-          <ThemedText type="h1" style={[styles.title, { color: AppColors.accent }]}>
+          <ThemedText
+            type="h1"
+            style={[styles.title, { color: AppColors.accent }]}
+          >
             킹 멤버십
           </ThemedText>
           <ThemedText
@@ -115,8 +130,13 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
           <BlurView intensity={60} tint="dark" style={styles.priceCard}>
             <View style={styles.priceHeader}>
               <ThemedText type="h4">킹 멤버십</ThemedText>
-              <View style={[styles.badge, { backgroundColor: AppColors.accent }]}>
-                <ThemedText type="small" style={{ color: "#000", fontWeight: "600" }}>
+              <View
+                style={[styles.badge, { backgroundColor: AppColors.accent }]}
+              >
+                <ThemedText
+                  type="small"
+                  style={{ color: "#000", fontWeight: "600" }}
+                >
                   프리미엄
                 </ThemedText>
               </View>
@@ -135,11 +155,23 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
           </BlurView>
         </Animated.View>
 
-        <Animated.View style={styles.benefitsList} entering={FadeInUp.delay(300).duration(500)}>
+        <Animated.View
+          style={styles.benefitsList}
+          entering={FadeInUp.delay(300).duration(500)}
+        >
           {BENEFITS.map((benefit, index) => (
             <View key={index} style={styles.benefitRow}>
-              <View style={[styles.benefitIcon, { backgroundColor: AppColors.accent + "20" }]}>
-                <Feather name={benefit.icon} size={18} color={AppColors.accent} />
+              <View
+                style={[
+                  styles.benefitIcon,
+                  { backgroundColor: AppColors.accent + "20" },
+                ]}
+              >
+                <Feather
+                  name={benefit.icon}
+                  size={18}
+                  color={AppColors.accent}
+                />
               </View>
               <ThemedText type="body" style={styles.benefitText}>
                 {benefit.text}
@@ -148,10 +180,16 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
           ))}
         </Animated.View>
 
-        <Animated.View style={styles.actions} entering={FadeInUp.delay(400).duration(500)}>
+        <Animated.View
+          style={styles.actions}
+          entering={FadeInUp.delay(400).duration(500)}
+        >
           <Button
             onPress={handleSubscribe}
-            style={[styles.subscribeButton, { backgroundColor: AppColors.accent }]}
+            style={[
+              styles.subscribeButton,
+              { backgroundColor: AppColors.accent },
+            ]}
           >
             구독하기
           </Button>
@@ -182,22 +220,42 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
               <ThemedText type="h3" style={styles.modalTitle}>
                 결제 안내
               </ThemedText>
-              <Pressable onPress={() => setShowPaymentModal(false)} style={styles.closeButton}>
+              <Pressable
+                onPress={() => setShowPaymentModal(false)}
+                style={styles.closeButton}
+              >
                 <Feather name="x" size={24} color={theme.text} />
               </Pressable>
             </View>
 
-            <View style={[styles.paymentInfo, { backgroundColor: theme.backgroundSecondary }]}>
+            <View
+              style={[
+                styles.paymentInfo,
+                { backgroundColor: theme.backgroundSecondary },
+              ]}
+            >
               <ThemedText type="body" style={styles.paymentLabel}>
                 현재 결제 방식 안내
               </ThemedText>
-              <ThemedText type="small" style={[styles.paymentDescription, { color: theme.textSecondary }]}>
-                현재는 계좌이체를 통한 결제만 가능합니다. 아래 계좌로 구독료를 입금해주시면 24시간 이내에 멤버십이 활성화됩니다.
+              <ThemedText
+                type="small"
+                style={[
+                  styles.paymentDescription,
+                  { color: theme.textSecondary },
+                ]}
+              >
+                현재는 계좌이체를 통한 결제만 가능합니다. 아래 계좌로 구독료를
+                입금해주시면 24시간 이내에 멤버십이 활성화됩니다.
               </ThemedText>
             </View>
 
-            <View style={[styles.accountInfo, { borderColor: AppColors.accent }]}>
-              <ThemedText type="small" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+            <View
+              style={[styles.accountInfo, { borderColor: AppColors.accent }]}
+            >
+              <ThemedText
+                type="small"
+                style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}
+              >
                 입금 계좌
               </ThemedText>
               <ThemedText type="h4" style={{ color: AppColors.accent }}>
@@ -223,8 +281,12 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
               leftIcon="user"
             />
 
-            <ThemedText type="small" style={[styles.notice, { color: theme.textSecondary }]}>
-              입금 확인 후 관리자 승인을 거쳐 멤버십이 활성화됩니다. (영업일 기준 1-2일 소요)
+            <ThemedText
+              type="small"
+              style={[styles.notice, { color: theme.textSecondary }]}
+            >
+              입금 확인 후 관리자 승인을 거쳐 멤버십이 활성화됩니다. (영업일
+              기준 1-2일 소요)
             </ThemedText>
 
             <Button
@@ -245,15 +307,35 @@ export default function SubscriptionScreen({ navigation }: SubscriptionScreenPro
         onRequestClose={handleSuccessClose}
       >
         <View style={styles.modalOverlay}>
-          <BlurView intensity={80} tint="dark" style={styles.successModalContent}>
-            <View style={[styles.successIcon, { backgroundColor: AppColors.success + "20" }]}>
-              <Feather name="check-circle" size={48} color={AppColors.success} />
+          <BlurView
+            intensity={80}
+            tint="dark"
+            style={styles.successModalContent}
+          >
+            <View
+              style={[
+                styles.successIcon,
+                { backgroundColor: AppColors.success + "20" },
+              ]}
+            >
+              <Feather
+                name="check-circle"
+                size={48}
+                color={AppColors.success}
+              />
             </View>
             <ThemedText type="h3" style={styles.successTitle}>
               신청이 완료되었습니다
             </ThemedText>
-            <ThemedText type="body" style={[styles.successDescription, { color: theme.textSecondary }]}>
-              입금 확인 후 관리자 승인을 거쳐 킹 멤버십이 활성화됩니다. 승인까지 영업일 기준 1-2일이 소요될 수 있습니다.
+            <ThemedText
+              type="body"
+              style={[
+                styles.successDescription,
+                { color: theme.textSecondary },
+              ]}
+            >
+              입금 확인 후 관리자 승인을 거쳐 킹 멤버십이 활성화됩니다. 승인까지
+              영업일 기준 1-2일이 소요될 수 있습니다.
             </ThemedText>
             <Button onPress={handleSuccessClose} style={styles.successButton}>
               확인

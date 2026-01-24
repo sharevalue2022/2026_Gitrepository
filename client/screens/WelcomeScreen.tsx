@@ -28,8 +28,8 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
           colors={["rgba(0,0,0,0.6)", "transparent", "rgba(0,0,0,0.8)"]}
           style={StyleSheet.absoluteFill}
         />
-        
-        <Animated.View 
+
+        <Animated.View
           style={[styles.header, { paddingTop: insets.top + Spacing.xl }]}
           entering={FadeIn.delay(200).duration(600)}
         >
@@ -45,7 +45,10 @@ export default function WelcomeScreen({ navigation }: WelcomeScreenProps) {
         </Animated.View>
 
         <Animated.View
-          style={[styles.footer, { paddingBottom: insets.bottom + Spacing["2xl"] }]}
+          style={[
+            styles.footer,
+            { paddingBottom: insets.bottom + Spacing["2xl"] },
+          ]}
           entering={FadeInDown.delay(400).duration(600)}
         >
           <BlurView intensity={40} tint="dark" style={styles.footerBlur}>

@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, View, ScrollView, Image, Pressable, Alert, Modal, TextInput } from "react-native";
+import {
+  StyleSheet,
+  View,
+  ScrollView,
+  Image,
+  Pressable,
+  Alert,
+  Modal,
+  TextInput,
+} from "react-native";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -47,15 +56,17 @@ export default function MembershipScreen() {
     if (!user?.id) return;
     setIsCheckingStatus(true);
     try {
-      const response = await fetch(new URL(`/api/users/${user.id}/payment-status`, getApiUrl()).toString());
+      const response = await fetch(
+        new URL(`/api/users/${user.id}/payment-status`, getApiUrl()).toString(),
+      );
       const data = await response.json();
       if (data.success) {
         setPaymentStatus(data.status);
         if (data.status === "approved" && data.isKingMember) {
-          await updateUser({ 
-            isKingMember: true, 
+          await updateUser({
+            isKingMember: true,
             kingMembershipStartDate: data.kingMembershipStartDate,
-            kingMembershipExpiry: data.kingMembershipExpiry 
+            kingMembershipExpiry: data.kingMembershipExpiry,
           });
         }
       }
@@ -77,7 +88,7 @@ export default function MembershipScreen() {
       Alert.alert("입력 오류", "입금자명을 입력해주세요.");
       return;
     }
-    
+
     setIsProcessing(true);
     try {
       const response = await apiRequest("POST", "/api/payment-requests", {
@@ -85,16 +96,16 @@ export default function MembershipScreen() {
         depositorName: depositorName.trim(),
         amount: 250000,
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setPaymentStatus("pending");
         setShowPaymentModal(false);
         Alert.alert(
           "입금 요청 완료",
-          "입금 확인 후 24시간 이내에 멤버십이 활성화됩니다.\n\n관리자 확인 전까지 '결제 대기' 상태로 표시됩니다."
+          "입금 확인 후 24시간 이내에 멤버십이 활성화됩니다.\n\n관리자 확인 전까지 '결제 대기' 상태로 표시됩니다.",
         );
       } else {
         Alert.alert("오류", data.message || "결제 요청에 실패했습니다.");
@@ -143,27 +154,60 @@ export default function MembershipScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Animated.View style={styles.header} entering={FadeIn.duration(500)}>
-          <View style={[styles.pendingBadge, { backgroundColor: AppColors.accent }]}>
+          <View
+            style={[styles.pendingBadge, { backgroundColor: AppColors.accent }]}
+          >
             <Feather name="clock" size={32} color="#fff" />
           </View>
-          <ThemedText type="h2" style={[styles.title, { color: AppColors.accent }]}>
+          <ThemedText
+            type="h2"
+            style={[styles.title, { color: AppColors.accent }]}
+          >
             결제 대기 중
           </ThemedText>
-          <View style={[styles.statusBadge, { backgroundColor: AppColors.accent + "20" }]}>
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: AppColors.accent + "20" },
+            ]}
+          >
             <Feather name="clock" size={14} color={AppColors.accent} />
-            <ThemedText type="small" style={{ color: AppColors.accent, marginLeft: Spacing.xs }}>
+            <ThemedText
+              type="small"
+              style={{ color: AppColors.accent, marginLeft: Spacing.xs }}
+            >
               관리자 확인 중
             </ThemedText>
           </View>
         </Animated.View>
 
         <Animated.View entering={FadeInUp.delay(100).duration(500)}>
-          <View style={[styles.pendingInfo, { backgroundColor: theme.backgroundDefault }]}>
-            <Feather name="info" size={20} color={AppColors.accent} style={{ marginBottom: Spacing.md }} />
-            <ThemedText type="body" style={{ textAlign: "center", marginBottom: Spacing.md }}>
+          <View
+            style={[
+              styles.pendingInfo,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
+            <Feather
+              name="info"
+              size={20}
+              color={AppColors.accent}
+              style={{ marginBottom: Spacing.md }}
+            />
+            <ThemedText
+              type="body"
+              style={{ textAlign: "center", marginBottom: Spacing.md }}
+            >
               입금 확인 후 멤버십이 활성화됩니다
             </ThemedText>
-            <ThemedText type="small" style={{ color: theme.textSecondary, textAlign: "center", lineHeight: 20 }}>
+            <ThemedText
+              type="small"
+              style={{
+                color: theme.textSecondary,
+                textAlign: "center",
+                lineHeight: 20,
+              }}
+            >
               입금 확인은 영업일 기준 24시간 이내에 처리됩니다.{"\n"}
               문의사항이 있으시면 고객센터로 연락해주세요.
             </ThemedText>
@@ -172,7 +216,10 @@ export default function MembershipScreen() {
 
         <Animated.View entering={FadeInUp.delay(200).duration(500)}>
           <View style={[styles.accountInfo, { borderColor: AppColors.accent }]}>
-            <ThemedText type="small" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+            <ThemedText
+              type="small"
+              style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}
+            >
               입금 계좌
             </ThemedText>
             <ThemedText type="h4" style={{ color: AppColors.accent }}>
@@ -214,7 +261,10 @@ export default function MembershipScreen() {
             style={styles.crownImage}
             resizeMode="contain"
           />
-          <ThemedText type="h2" style={[styles.title, { color: AppColors.accent }]}>
+          <ThemedText
+            type="h2"
+            style={[styles.title, { color: AppColors.accent }]}
+          >
             킹 멤버십
           </ThemedText>
           <ThemedText
@@ -231,7 +281,10 @@ export default function MembershipScreen() {
               <ThemedText type="h1" style={{ color: AppColors.accent }}>
                 250,000
               </ThemedText>
-              <ThemedText type="body" style={{ color: theme.textSecondary, marginLeft: Spacing.sm }}>
+              <ThemedText
+                type="body"
+                style={{ color: theme.textSecondary, marginLeft: Spacing.sm }}
+              >
                 원 / 월
               </ThemedText>
             </View>
@@ -245,7 +298,12 @@ export default function MembershipScreen() {
           <BlurView intensity={40} tint="dark" style={styles.benefitsBlur}>
             {BENEFITS.map((benefit, index) => (
               <View key={index} style={styles.benefitRow}>
-                <View style={[styles.checkIcon, { backgroundColor: AppColors.success + "20" }]}>
+                <View
+                  style={[
+                    styles.checkIcon,
+                    { backgroundColor: AppColors.success + "20" },
+                  ]}
+                >
                   <Feather name="check" size={14} color={AppColors.success} />
                 </View>
                 <ThemedText type="body">{benefit}</ThemedText>
@@ -257,7 +315,10 @@ export default function MembershipScreen() {
         <Animated.View entering={FadeInUp.delay(300).duration(500)}>
           <Button
             onPress={handleSubscribe}
-            style={[styles.subscribeButton, { backgroundColor: AppColors.accent }]}
+            style={[
+              styles.subscribeButton,
+              { backgroundColor: AppColors.accent },
+            ]}
           >
             구독하기
           </Button>
@@ -275,22 +336,45 @@ export default function MembershipScreen() {
                 <ThemedText type="h3" style={styles.modalTitle}>
                   결제 안내
                 </ThemedText>
-                <Pressable onPress={() => setShowPaymentModal(false)} style={styles.closeButton}>
+                <Pressable
+                  onPress={() => setShowPaymentModal(false)}
+                  style={styles.closeButton}
+                >
                   <Feather name="x" size={24} color={theme.text} />
                 </Pressable>
               </View>
 
-              <View style={[styles.paymentInfo, { backgroundColor: theme.backgroundSecondary }]}>
+              <View
+                style={[
+                  styles.paymentInfo,
+                  { backgroundColor: theme.backgroundSecondary },
+                ]}
+              >
                 <ThemedText type="body" style={styles.paymentLabel}>
                   현재 결제 방식 안내
                 </ThemedText>
-                <ThemedText type="small" style={[styles.paymentDescription, { color: theme.textSecondary }]}>
-                  현재는 계좌이체를 통한 결제만 가능합니다. 아래 계좌로 구독료를 입금해주시면 24시간 이내에 멤버십이 활성화됩니다.
+                <ThemedText
+                  type="small"
+                  style={[
+                    styles.paymentDescription,
+                    { color: theme.textSecondary },
+                  ]}
+                >
+                  현재는 계좌이체를 통한 결제만 가능합니다. 아래 계좌로 구독료를
+                  입금해주시면 24시간 이내에 멤버십이 활성화됩니다.
                 </ThemedText>
               </View>
 
-              <View style={[styles.accountInfo, { borderColor: AppColors.accent }]}>
-                <ThemedText type="small" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+              <View
+                style={[styles.accountInfo, { borderColor: AppColors.accent }]}
+              >
+                <ThemedText
+                  type="small"
+                  style={{
+                    color: theme.textSecondary,
+                    marginBottom: Spacing.xs,
+                  }}
+                >
                   입금 계좌
                 </ThemedText>
                 <ThemedText type="h4" style={{ color: AppColors.accent }}>
@@ -308,16 +392,30 @@ export default function MembershipScreen() {
                 </ThemedText>
               </View>
 
-              <View style={[styles.depositorInput, { backgroundColor: theme.backgroundSecondary }]}>
-                <ThemedText type="small" style={{ color: theme.textSecondary, marginBottom: Spacing.sm }}>
+              <View
+                style={[
+                  styles.depositorInput,
+                  { backgroundColor: theme.backgroundSecondary },
+                ]}
+              >
+                <ThemedText
+                  type="small"
+                  style={{
+                    color: theme.textSecondary,
+                    marginBottom: Spacing.sm,
+                  }}
+                >
                   입금자명 (필수)
                 </ThemedText>
                 <TextInput
-                  style={[styles.textInput, { 
-                    backgroundColor: theme.backgroundRoot,
-                    color: theme.text,
-                    borderColor: theme.border
-                  }]}
+                  style={[
+                    styles.textInput,
+                    {
+                      backgroundColor: theme.backgroundRoot,
+                      color: theme.text,
+                      borderColor: theme.border,
+                    },
+                  ]}
                   value={depositorName}
                   onChangeText={setDepositorName}
                   placeholder="실제 입금하실 성함을 입력해주세요"
@@ -325,7 +423,10 @@ export default function MembershipScreen() {
                 />
               </View>
 
-              <ThemedText type="small" style={[styles.notice, { color: theme.textSecondary }]}>
+              <ThemedText
+                type="small"
+                style={[styles.notice, { color: theme.textSecondary }]}
+              >
                 입금자명과 실제 입금하는 계좌의 성함이 일치해야 합니다.
               </ThemedText>
 
@@ -356,19 +457,32 @@ export default function MembershipScreen() {
       showsVerticalScrollIndicator={false}
     >
       <Animated.View style={styles.header} entering={FadeIn.duration(500)}>
-        <View style={[styles.activeBadge, { backgroundColor: AppColors.accent }]}>
+        <View
+          style={[styles.activeBadge, { backgroundColor: AppColors.accent }]}
+        >
           <Image
             source={require("../../assets/images/king-crown.png")}
             style={styles.crownImageSmall}
             resizeMode="contain"
           />
         </View>
-        <ThemedText type="h2" style={[styles.title, { color: AppColors.accent }]}>
+        <ThemedText
+          type="h2"
+          style={[styles.title, { color: AppColors.accent }]}
+        >
           킹 멤버십
         </ThemedText>
-        <View style={[styles.statusBadge, { backgroundColor: AppColors.success + "20" }]}>
+        <View
+          style={[
+            styles.statusBadge,
+            { backgroundColor: AppColors.success + "20" },
+          ]}
+        >
           <Feather name="check-circle" size={14} color={AppColors.success} />
-          <ThemedText type="small" style={{ color: AppColors.success, marginLeft: Spacing.xs }}>
+          <ThemedText
+            type="small"
+            style={{ color: AppColors.success, marginLeft: Spacing.xs }}
+          >
             활성화됨
           </ThemedText>
         </View>
@@ -399,7 +513,12 @@ export default function MembershipScreen() {
         <View style={styles.benefitsContainer}>
           {BENEFITS.map((benefit, index) => (
             <View key={index} style={styles.benefitRow}>
-              <View style={[styles.checkIcon, { backgroundColor: AppColors.success + "20" }]}>
+              <View
+                style={[
+                  styles.checkIcon,
+                  { backgroundColor: AppColors.success + "20" },
+                ]}
+              >
                 <Feather name="check" size={14} color={AppColors.success} />
               </View>
               <ThemedText type="body">{benefit}</ThemedText>
@@ -410,7 +529,10 @@ export default function MembershipScreen() {
 
       <Button
         onPress={handleCancel}
-        style={[styles.cancelButton, { backgroundColor: theme.backgroundDefault }]}
+        style={[
+          styles.cancelButton,
+          { backgroundColor: theme.backgroundDefault },
+        ]}
       >
         <ThemedText type="body" style={{ color: AppColors.error }}>
           멤버십 해지
@@ -429,32 +551,58 @@ export default function MembershipScreen() {
               <ThemedText type="h3" style={styles.modalTitle}>
                 멤버십 해지
               </ThemedText>
-              <Pressable onPress={() => setShowCancelModal(false)} style={styles.closeButton}>
+              <Pressable
+                onPress={() => setShowCancelModal(false)}
+                style={styles.closeButton}
+              >
                 <Feather name="x" size={24} color={theme.text} />
               </Pressable>
             </View>
 
-            <View style={[styles.cancelWarning, { backgroundColor: AppColors.accent + "15" }]}>
-              <Feather name="info" size={20} color={AppColors.accent} style={{ marginBottom: Spacing.sm }} />
-              <ThemedText type="body" style={[styles.cancelWarningText, { color: theme.text }]}>
+            <View
+              style={[
+                styles.cancelWarning,
+                { backgroundColor: AppColors.accent + "15" },
+              ]}
+            >
+              <Feather
+                name="info"
+                size={20}
+                color={AppColors.accent}
+                style={{ marginBottom: Spacing.sm }}
+              />
+              <ThemedText
+                type="body"
+                style={[styles.cancelWarningText, { color: theme.text }]}
+              >
                 멤버십 해지시, 결제일 기준 +30일까지는 킹 멤버십이 유지됩니다.
               </ThemedText>
             </View>
 
             <View style={[styles.expiryInfo, { borderColor: theme.border }]}>
-              <ThemedText type="small" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+              <ThemedText
+                type="small"
+                style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}
+              >
                 멤버십 유효 기간
               </ThemedText>
               <ThemedText type="h4" style={{ color: AppColors.accent }}>
                 {formatDate(user.kingMembershipExpiry)}까지
               </ThemedText>
-              <ThemedText type="small" style={{ color: theme.textSecondary, marginTop: Spacing.sm }}>
+              <ThemedText
+                type="small"
+                style={{ color: theme.textSecondary, marginTop: Spacing.sm }}
+              >
                 이 날짜 이후에는 메시지 전송이 불가능합니다.
               </ThemedText>
             </View>
 
-            <ThemedText type="small" style={[styles.cancelNotice, { color: theme.textSecondary }]}>
-              해지 후에도 위 날짜까지는 모든 킹 멤버십 혜택을 이용하실 수 있습니다.
+            <ThemedText
+              type="small"
+              style={[styles.cancelNotice, { color: theme.textSecondary }]}
+            >
+              해지 후에도 위 날짜까지는 모든 킹 멤버십 혜택을 이용하실 수
+              있습니다.
             </ThemedText>
 
             <View style={styles.cancelActions}>
@@ -468,7 +616,10 @@ export default function MembershipScreen() {
               <Button
                 onPress={handleCancelConfirm}
                 disabled={isProcessing}
-                style={[styles.cancelConfirmButton, { backgroundColor: AppColors.error }]}
+                style={[
+                  styles.cancelConfirmButton,
+                  { backgroundColor: AppColors.error },
+                ]}
               >
                 {isProcessing ? "처리 중..." : "해지하기"}
               </Button>

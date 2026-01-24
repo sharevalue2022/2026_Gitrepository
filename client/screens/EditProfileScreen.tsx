@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import { StyleSheet, View, Pressable, Image, ScrollView, Alert } from "react-native";
+import {
+  StyleSheet,
+  View,
+  Pressable,
+  Image,
+  ScrollView,
+  Alert,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useNavigation } from "@react-navigation/native";
@@ -16,8 +23,30 @@ import { useAuth } from "@/context/AuthContext";
 import { Spacing, BorderRadius, AppColors } from "@/constants/theme";
 import type { UserPhoto } from "@/types";
 
-const HOBBIES = ["여행", "독서", "운동", "음악", "요리", "사진", "게임", "등산", "예술", "영화"];
-const FOODS = ["한식", "일식", "양식", "중식", "커피", "와인", "디저트", "건강식", "분식", "파인다이닝"];
+const HOBBIES = [
+  "여행",
+  "독서",
+  "운동",
+  "음악",
+  "요리",
+  "사진",
+  "게임",
+  "등산",
+  "예술",
+  "영화",
+];
+const FOODS = [
+  "한식",
+  "일식",
+  "양식",
+  "중식",
+  "커피",
+  "와인",
+  "디저트",
+  "건강식",
+  "분식",
+  "파인다이닝",
+];
 
 export default function EditProfileScreen() {
   const { theme } = useTheme();
@@ -31,22 +60,30 @@ export default function EditProfileScreen() {
   const [location, setLocation] = useState(user?.location || "");
   const [occupation, setOccupation] = useState(user?.occupation || "");
   const [bio, setBio] = useState(user?.bio || "");
-  const [selectedHobbies, setSelectedHobbies] = useState<string[]>(user?.hobbies || []);
-  const [selectedFoods, setSelectedFoods] = useState<string[]>(user?.foodPreferences || []);
+  const [selectedHobbies, setSelectedHobbies] = useState<string[]>(
+    user?.hobbies || [],
+  );
+  const [selectedFoods, setSelectedFoods] = useState<string[]>(
+    user?.foodPreferences || [],
+  );
   const [photos, setPhotos] = useState<UserPhoto[]>(user?.photos || []);
   const [isSaving, setIsSaving] = useState(false);
 
   const toggleHobby = (hobby: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedHobbies((prev) =>
-      prev.includes(hobby) ? prev.filter((h) => h !== hobby) : [...prev, hobby].slice(0, 5)
+      prev.includes(hobby)
+        ? prev.filter((h) => h !== hobby)
+        : [...prev, hobby].slice(0, 5),
     );
   };
 
   const toggleFood = (food: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedFoods((prev) =>
-      prev.includes(food) ? prev.filter((f) => f !== food) : [...prev, food].slice(0, 3)
+      prev.includes(food)
+        ? prev.filter((f) => f !== food)
+        : [...prev, food].slice(0, 3),
     );
   };
 
@@ -59,7 +96,9 @@ export default function EditProfileScreen() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      setPhotos((prev) => [...prev, { url: result.assets[0].uri, approved: false }].slice(0, 5));
+      setPhotos((prev) =>
+        [...prev, { url: result.assets[0].uri, approved: false }].slice(0, 5),
+      );
     }
   };
 
@@ -109,13 +148,20 @@ export default function EditProfileScreen() {
         <ThemedText type="body" style={styles.sectionLabel}>
           사진 (최대 5장)
         </ThemedText>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoScroll}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.photoScroll}
+        >
           {photos.map((photo, index) => (
             <View key={index} style={styles.photoWrapper}>
               <Image source={{ uri: photo.url }} style={styles.photo} />
               <Pressable
                 onPress={() => removePhoto(index)}
-                style={[styles.removePhoto, { backgroundColor: AppColors.error }]}
+                style={[
+                  styles.removePhoto,
+                  { backgroundColor: AppColors.error },
+                ]}
               >
                 <Feather name="x" size={14} color="#fff" />
               </Pressable>
@@ -124,7 +170,13 @@ export default function EditProfileScreen() {
           {photos.length < 5 ? (
             <Pressable
               onPress={pickImage}
-              style={[styles.addPhoto, { backgroundColor: theme.backgroundDefault, borderColor: theme.border }]}
+              style={[
+                styles.addPhoto,
+                {
+                  backgroundColor: theme.backgroundDefault,
+                  borderColor: theme.border,
+                },
+              ]}
             >
               <Feather name="plus" size={24} color={theme.textSecondary} />
             </Pressable>
@@ -190,14 +242,18 @@ export default function EditProfileScreen() {
                   backgroundColor: selectedHobbies.includes(hobby)
                     ? AppColors.accent + "20"
                     : theme.backgroundDefault,
-                  borderColor: selectedHobbies.includes(hobby) ? AppColors.accent : theme.border,
+                  borderColor: selectedHobbies.includes(hobby)
+                    ? AppColors.accent
+                    : theme.border,
                 },
               ]}
             >
               <ThemedText
                 type="small"
                 style={{
-                  color: selectedHobbies.includes(hobby) ? AppColors.accent : theme.text,
+                  color: selectedHobbies.includes(hobby)
+                    ? AppColors.accent
+                    : theme.text,
                 }}
               >
                 {hobby}
@@ -222,14 +278,18 @@ export default function EditProfileScreen() {
                   backgroundColor: selectedFoods.includes(food)
                     ? AppColors.accent + "20"
                     : theme.backgroundDefault,
-                  borderColor: selectedFoods.includes(food) ? AppColors.accent : theme.border,
+                  borderColor: selectedFoods.includes(food)
+                    ? AppColors.accent
+                    : theme.border,
                 },
               ]}
             >
               <ThemedText
                 type="small"
                 style={{
-                  color: selectedFoods.includes(food) ? AppColors.accent : theme.text,
+                  color: selectedFoods.includes(food)
+                    ? AppColors.accent
+                    : theme.text,
                 }}
               >
                 {food}

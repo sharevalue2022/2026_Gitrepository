@@ -12,7 +12,8 @@ export function getApiUrl(): string {
   }
 
   // Use http for localhost, https for production
-  const protocol = host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https';
+  const protocol =
+    host.includes("localhost") || host.includes("127.0.0.1") ? "http" : "https";
   let url = new URL(`${protocol}://${host}`);
 
   return url.href;

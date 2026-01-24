@@ -2,7 +2,13 @@ import React, { useState } from "react";
 import { StyleSheet, View, Pressable, Image } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import Animated, { FadeIn, FadeInUp, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import Animated, {
+  FadeIn,
+  FadeInUp,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
@@ -21,15 +27,15 @@ type GenderSelectionScreenProps = {
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-function GenderCard({ 
-  gender, 
-  label, 
-  isSelected, 
-  onSelect 
-}: { 
-  gender: Gender; 
-  label: string; 
-  isSelected: boolean; 
+function GenderCard({
+  gender,
+  label,
+  isSelected,
+  onSelect,
+}: {
+  gender: Gender;
+  label: string;
+  isSelected: boolean;
   onSelect: () => void;
 }) {
   const { theme } = useTheme();
@@ -47,9 +53,10 @@ function GenderCard({
     scale.value = withSpring(1, { damping: 15 });
   };
 
-  const avatarSource = gender === "female"
-    ? require("../../assets/images/default-avatar-female.png")
-    : require("../../assets/images/default-avatar-male.png");
+  const avatarSource =
+    gender === "female"
+      ? require("../../assets/images/default-avatar-female.png")
+      : require("../../assets/images/default-avatar-male.png");
 
   return (
     <AnimatedPressable
@@ -64,7 +71,9 @@ function GenderCard({
         style={[
           styles.option,
           {
-            borderColor: isSelected ? AppColors.accent : "rgba(255,255,255,0.15)",
+            borderColor: isSelected
+              ? AppColors.accent
+              : "rgba(255,255,255,0.15)",
             borderWidth: isSelected ? 2 : 1,
           },
         ]}
@@ -74,7 +83,9 @@ function GenderCard({
           {label}
         </ThemedText>
         {isSelected ? (
-          <View style={[styles.checkmark, { backgroundColor: AppColors.accent }]}>
+          <View
+            style={[styles.checkmark, { backgroundColor: AppColors.accent }]}
+          >
             <Feather name="check" size={16} color="#000" />
           </View>
         ) : null}
@@ -83,7 +94,9 @@ function GenderCard({
   );
 }
 
-export default function GenderSelectionScreen({ navigation }: GenderSelectionScreenProps) {
+export default function GenderSelectionScreen({
+  navigation,
+}: GenderSelectionScreenProps) {
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
   const [selectedGender, setSelectedGender] = useState<Gender | null>(null);
@@ -105,7 +118,9 @@ export default function GenderSelectionScreen({ navigation }: GenderSelectionScr
         colors={["#0A0A0A", "#141414", "#0A0A0A"]}
         style={StyleSheet.absoluteFill}
       />
-      <View style={[styles.content, { paddingTop: insets.top + Spacing["4xl"] }]}>
+      <View
+        style={[styles.content, { paddingTop: insets.top + Spacing["4xl"] }]}
+      >
         <Animated.View entering={FadeInUp.delay(100).duration(500)}>
           <ThemedText type="h2" style={styles.title}>
             성별을 선택해주세요
@@ -119,7 +134,10 @@ export default function GenderSelectionScreen({ navigation }: GenderSelectionScr
         </Animated.View>
 
         <View style={styles.options}>
-          <Animated.View entering={FadeIn.delay(200).duration(500)} style={{ flex: 1 }}>
+          <Animated.View
+            entering={FadeIn.delay(200).duration(500)}
+            style={{ flex: 1 }}
+          >
             <GenderCard
               gender="male"
               label="남성"
@@ -128,7 +146,10 @@ export default function GenderSelectionScreen({ navigation }: GenderSelectionScr
             />
           </Animated.View>
 
-          <Animated.View entering={FadeIn.delay(300).duration(500)} style={{ flex: 1 }}>
+          <Animated.View
+            entering={FadeIn.delay(300).duration(500)}
+            style={{ flex: 1 }}
+          >
             <GenderCard
               gender="female"
               label="여성"
@@ -140,7 +161,10 @@ export default function GenderSelectionScreen({ navigation }: GenderSelectionScr
       </View>
 
       <Animated.View
-        style={[styles.footer, { paddingBottom: insets.bottom + Spacing["2xl"] }]}
+        style={[
+          styles.footer,
+          { paddingBottom: insets.bottom + Spacing["2xl"] },
+        ]}
         entering={FadeInUp.delay(400).duration(500)}
       >
         <Button

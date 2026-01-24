@@ -20,9 +20,23 @@ type ProfileSetupScreenProps = {
   route: RouteProp<AuthStackParamList, "ProfileSetup">;
 };
 
-const HOBBIES = ["여행", "독서", "운동", "음악", "요리", "사진", "게임", "등산", "예술", "영화"];
+const HOBBIES = [
+  "여행",
+  "독서",
+  "운동",
+  "음악",
+  "요리",
+  "사진",
+  "게임",
+  "등산",
+  "예술",
+  "영화",
+];
 
-export default function ProfileSetupScreen({ navigation, route }: ProfileSetupScreenProps) {
+export default function ProfileSetupScreen({
+  navigation,
+  route,
+}: ProfileSetupScreenProps) {
   const { gender } = route.params;
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
@@ -40,7 +54,9 @@ export default function ProfileSetupScreen({ navigation, route }: ProfileSetupSc
   const toggleHobby = (hobby: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedHobbies((prev) =>
-      prev.includes(hobby) ? prev.filter((h) => h !== hobby) : [...prev, hobby].slice(0, 5)
+      prev.includes(hobby)
+        ? prev.filter((h) => h !== hobby)
+        : [...prev, hobby].slice(0, 5),
     );
   };
 
@@ -50,7 +66,9 @@ export default function ProfileSetupScreen({ navigation, route }: ProfileSetupSc
     const phoneRegex = /^01[0-9]-?[0-9]{3,4}-?[0-9]{4}$/;
     if (!phoneNumber.trim()) {
       newErrors.phoneNumber = "전화번호를 입력해주세요";
-    } else if (!phoneRegex.test(phoneNumber.replace(/-/g, "").replace(/^010/, "010"))) {
+    } else if (
+      !phoneRegex.test(phoneNumber.replace(/-/g, "").replace(/^010/, "010"))
+    ) {
       newErrors.phoneNumber = "올바른 전화번호 형식을 입력해주세요";
     }
     if (!password.trim()) {
@@ -61,10 +79,12 @@ export default function ProfileSetupScreen({ navigation, route }: ProfileSetupSc
     if (password !== passwordConfirm) {
       newErrors.passwordConfirm = "비밀번호가 일치하지 않습니다";
     }
-    if (!age || parseInt(age) < 18 || parseInt(age) > 100) newErrors.age = "올바른 나이를 입력해주세요 (18세 이상)";
+    if (!age || parseInt(age) < 18 || parseInt(age) > 100)
+      newErrors.age = "올바른 나이를 입력해주세요 (18세 이상)";
     if (!location.trim()) newErrors.location = "위치를 입력해주세요";
     if (!occupation.trim()) newErrors.occupation = "직업을 입력해주세요";
-    if (selectedHobbies.length === 0) newErrors.hobbies = "취미를 하나 이상 선택해주세요";
+    if (selectedHobbies.length === 0)
+      newErrors.hobbies = "취미를 하나 이상 선택해주세요";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -181,7 +201,10 @@ export default function ProfileSetupScreen({ navigation, route }: ProfileSetupSc
           </ThemedText>
         </View>
         {errors.hobbies ? (
-          <ThemedText type="small" style={{ color: AppColors.error, marginBottom: Spacing.sm }}>
+          <ThemedText
+            type="small"
+            style={{ color: AppColors.error, marginBottom: Spacing.sm }}
+          >
             {errors.hobbies}
           </ThemedText>
         ) : null}
@@ -196,14 +219,18 @@ export default function ProfileSetupScreen({ navigation, route }: ProfileSetupSc
                   backgroundColor: selectedHobbies.includes(hobby)
                     ? AppColors.accent + "20"
                     : theme.backgroundDefault,
-                  borderColor: selectedHobbies.includes(hobby) ? AppColors.accent : theme.border,
+                  borderColor: selectedHobbies.includes(hobby)
+                    ? AppColors.accent
+                    : theme.border,
                 },
               ]}
             >
               <ThemedText
                 type="small"
                 style={{
-                  color: selectedHobbies.includes(hobby) ? AppColors.accent : theme.text,
+                  color: selectedHobbies.includes(hobby)
+                    ? AppColors.accent
+                    : theme.text,
                 }}
               >
                 {hobby}

@@ -17,7 +17,8 @@ import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
 export default function MessagesScreen() {
   const { theme } = useTheme();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const headerHeight = useHeaderHeight();
   const tabBarHeight = useBottomTabBarHeight();
   const insets = useSafeAreaInsets();
@@ -36,7 +37,7 @@ export default function MessagesScreen() {
   useFocusEffect(
     useCallback(() => {
       loadConversations();
-    }, [loadConversations])
+    }, [loadConversations]),
   );
 
   const handleRefresh = () => {
@@ -74,7 +75,9 @@ export default function MessagesScreen() {
         title="아직 대화가 없습니다"
         message="관심 있는 회원에게 먼저 대화를 시작해보세요"
         buttonText="회원 둘러보기"
-        onButtonPress={() => navigation.navigate("Main", { screen: "DiscoverTab" } as any)}
+        onButtonPress={() =>
+          navigation.navigate("Main", { screen: "DiscoverTab" } as any)
+        }
       />
     );
   };

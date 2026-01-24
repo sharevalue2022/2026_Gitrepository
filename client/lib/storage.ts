@@ -19,11 +19,13 @@ function getConversationsKey(userId: string): string {
   return `${CONVERSATIONS_KEY_PREFIX}${userId}`;
 }
 
-export async function getConversations(userId?: string): Promise<Conversation[]> {
+export async function getConversations(
+  userId?: string,
+): Promise<Conversation[]> {
   try {
-    const currentUserId = userId || await getCurrentUserId();
+    const currentUserId = userId || (await getCurrentUserId());
     if (!currentUserId) return [];
-    
+
     // First try to fetch from server
     try {
       const url = new URL("/api/conversations", getApiUrl());
@@ -31,50 +33,69 @@ export async function getConversations(userId?: string): Promise<Conversation[]>
       const res = await fetch(url.href);
       if (res.ok) {
         const data = await res.json();
-        if (data.success && data.conversations && data.conversations.length > 0) {
+        if (
+          data.success &&
+          data.conversations &&
+          data.conversations.length > 0
+        ) {
           // Map server conversations to local format
-          const serverConversations: Conversation[] = data.conversations.map((conv: any) => {
-            const otherUser = conv.otherUser;
-            return {
-              id: conv.id,
-              serverConversationId: conv.id,
-              participantId: otherUser.id,
-              participantName: otherUser.name,
-              participantPhoto: otherUser.photos?.[0]?.url || "",
-              participantGender: otherUser.gender,
-              lastMessage: conv.lastMessage?.content || "",
-              lastMessageTime: conv.lastMessageAt || conv.createdAt,
-              unreadCount: 0,
-            };
-          });
+          const serverConversations: Conversation[] = data.conversations.map(
+            (conv: any) => {
+              const otherUser = conv.otherUser;
+              return {
+                id: conv.id,
+                serverConversationId: conv.id,
+                participantId: otherUser.id,
+                participantName: otherUser.name,
+                participantPhoto: otherUser.photos?.[0]?.url || "",
+                participantGender: otherUser.gender,
+                lastMessage: conv.lastMessage?.content || "",
+                lastMessageTime: conv.lastMessageAt || conv.createdAt,
+                unreadCount: 0,
+              };
+            },
+          );
           // Save to local storage for offline access
           await saveConversations(serverConversations, currentUserId);
           return serverConversations;
         }
       }
     } catch (e) {
-      console.log("Could not fetch conversations from server, using local data");
+      console.log(
+        "Could not fetch conversations from server, using local data",
+      );
     }
-    
+
     // Fall back to local storage
-    const stored = await AsyncStorage.getItem(getConversationsKey(currentUserId));
+    const stored = await AsyncStorage.getItem(
+      getConversationsKey(currentUserId),
+    );
     return stored ? JSON.parse(stored) : [];
   } catch {
     return [];
   }
 }
 
-export async function saveConversations(conversations: Conversation[], userId?: string): Promise<void> {
-  const currentUserId = userId || await getCurrentUserId();
+export async function saveConversations(
+  conversations: Conversation[],
+  userId?: string,
+): Promise<void> {
+  const currentUserId = userId || (await getCurrentUserId());
   if (!currentUserId) return;
-  await AsyncStorage.setItem(getConversationsKey(currentUserId), JSON.stringify(conversations));
+  await AsyncStorage.setItem(
+    getConversationsKey(currentUserId),
+    JSON.stringify(conversations),
+  );
 }
 
 export async function getMessages(conversationId: string): Promise<Message[]> {
   try {
     // Try to fetch from server first
     try {
-      const url = new URL(`/api/conversations/${conversationId}/messages`, getApiUrl());
+      const url = new URL(
+        `/api/conversations/${conversationId}/messages`,
+        getApiUrl(),
+      );
       const res = await fetch(url.href);
       if (res.ok) {
         const data = await res.json();
@@ -96,28 +117,44 @@ export async function getMessages(conversationId: string): Promise<Message[]> {
     } catch (e) {
       console.log("Could not fetch messages from server, using local data");
     }
-    
+
     // Fall back to local storage
-    const stored = await AsyncStorage.getItem(`${MESSAGES_KEY}_${conversationId}`);
+    const stored = await AsyncStorage.getItem(
+      `${MESSAGES_KEY}_${conversationId}`,
+    );
     return stored ? JSON.parse(stored) : [];
   } catch {
     return [];
   }
 }
 
-export async function saveMessages(conversationId: string, messages: Message[]): Promise<void> {
-  await AsyncStorage.setItem(`${MESSAGES_KEY}_${conversationId}`, JSON.stringify(messages));
+export async function saveMessages(
+  conversationId: string,
+  messages: Message[],
+): Promise<void> {
+  await AsyncStorage.setItem(
+    `${MESSAGES_KEY}_${conversationId}`,
+    JSON.stringify(messages),
+  );
 }
 
-export async function addMessage(conversationId: string, message: Message, recipientId?: string, serverConversationId?: string): Promise<void> {
+export async function addMessage(
+  conversationId: string,
+  message: Message,
+  recipientId?: string,
+  serverConversationId?: string,
+): Promise<void> {
   const messages = await getMessages(conversationId);
   messages.push(message);
   await saveMessages(conversationId, messages);
-  
+
   // Sync to server if we have server conversation ID
   if (serverConversationId && recipientId) {
     try {
-      const url = new URL(`/api/conversations/${serverConversationId}/messages`, getApiUrl());
+      const url = new URL(
+        `/api/conversations/${serverConversationId}/messages`,
+        getApiUrl(),
+      );
       await fetch(url.href, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -133,12 +170,15 @@ export async function addMessage(conversationId: string, message: Message, recip
   }
 }
 
-export async function getUsers(excludeId?: string, gender?: string): Promise<UserProfile[]> {
+export async function getUsers(
+  excludeId?: string,
+  gender?: string,
+): Promise<UserProfile[]> {
   try {
     const url = new URL("/api/users", getApiUrl());
     if (excludeId) url.searchParams.set("excludeId", excludeId);
     if (gender) url.searchParams.set("gender", gender);
-    
+
     const res = await fetch(url.href);
     if (res.ok) {
       const data = await res.json();
@@ -167,11 +207,13 @@ export async function getUsers(excludeId?: string, gender?: string): Promise<Use
   } catch (e) {
     console.log("Could not fetch users from API, using mock data");
   }
-  
+
   return getMockUsers(gender);
 }
 
-export async function getMockUsers(filterGender?: string): Promise<UserProfile[]> {
+export async function getMockUsers(
+  filterGender?: string,
+): Promise<UserProfile[]> {
   try {
     const stored = await AsyncStorage.getItem(MOCK_USERS_KEY);
     let users: UserProfile[];
@@ -181,9 +223,9 @@ export async function getMockUsers(filterGender?: string): Promise<UserProfile[]
       users = generateMockUsers();
       await AsyncStorage.setItem(MOCK_USERS_KEY, JSON.stringify(users));
     }
-    
+
     if (filterGender) {
-      return users.filter(u => u.gender === filterGender);
+      return users.filter((u) => u.gender === filterGender);
     }
     return users;
   } catch {
@@ -192,18 +234,75 @@ export async function getMockUsers(filterGender?: string): Promise<UserProfile[]
 }
 
 function generateMockUsers(): UserProfile[] {
-  const femaleNames = ["소연", "지우", "민정", "유나", "하영", "수현", "은지", "다혜"];
-  const maleNames = ["준호", "민호", "서준", "태현", "우진", "현수", "지훈", "동우"];
+  const femaleNames = [
+    "소연",
+    "지우",
+    "민정",
+    "유나",
+    "하영",
+    "수현",
+    "은지",
+    "다혜",
+  ];
+  const maleNames = [
+    "준호",
+    "민호",
+    "서준",
+    "태현",
+    "우진",
+    "현수",
+    "지훈",
+    "동우",
+  ];
   const locations = ["서울", "부산", "인천", "대구", "대전", "광주"];
-  const occupations = ["디자이너", "엔지니어", "의사", "교사", "아티스트", "마케터", "금융인", "사업가"];
-  const hobbies = ["여행", "독서", "운동", "음악", "요리", "사진", "게임", "등산"];
-  const foods = ["한식", "일식", "양식", "태국음식", "커피", "와인", "디저트", "건강식"];
-  
+  const occupations = [
+    "디자이너",
+    "엔지니어",
+    "의사",
+    "교사",
+    "아티스트",
+    "마케터",
+    "금융인",
+    "사업가",
+  ];
+  const hobbies = [
+    "여행",
+    "독서",
+    "운동",
+    "음악",
+    "요리",
+    "사진",
+    "게임",
+    "등산",
+  ];
+  const foods = [
+    "한식",
+    "일식",
+    "양식",
+    "태국음식",
+    "커피",
+    "와인",
+    "디저트",
+    "건강식",
+  ];
+
   const samplePhotos = [
-    { url: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=400&fit=crop", approved: true },
-    { url: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop", approved: true },
-    { url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&h=400&fit=crop", approved: true },
-    { url: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=400&fit=crop", approved: true },
+    {
+      url: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=400&fit=crop",
+      approved: true,
+    },
+    {
+      url: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop",
+      approved: true,
+    },
+    {
+      url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&h=400&fit=crop",
+      approved: true,
+    },
+    {
+      url: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=400&fit=crop",
+      approved: true,
+    },
   ];
 
   const users: UserProfile[] = [];
@@ -214,7 +313,7 @@ function generateMockUsers(): UserProfile[] {
       id: `female_${i}`,
       gender: "female",
       name,
-      age: 20 + (i * 2) + Math.floor(Math.random() * 3),
+      age: 20 + i * 2 + Math.floor(Math.random() * 3),
       location: locations[Math.floor(Math.random() * locations.length)],
       occupation: occupations[Math.floor(Math.random() * occupations.length)],
       hobbies: hobbies.sort(() => 0.5 - Math.random()).slice(0, 3),
@@ -227,7 +326,9 @@ function generateMockUsers(): UserProfile[] {
       profileComplete: true,
       onboardingComplete: true,
       lastActive: new Date(Date.now() - Math.random() * 3600000).toISOString(),
-      createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 3600000).toISOString(),
+      createdAt: new Date(
+        Date.now() - Math.random() * 30 * 24 * 3600000,
+      ).toISOString(),
     });
   });
 
@@ -249,20 +350,27 @@ function generateMockUsers(): UserProfile[] {
       profileComplete: true,
       onboardingComplete: true,
       lastActive: new Date(Date.now() - Math.random() * 3600000).toISOString(),
-      createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 3600000).toISOString(),
+      createdAt: new Date(
+        Date.now() - Math.random() * 30 * 24 * 3600000,
+      ).toISOString(),
     });
   });
 
   return users;
 }
 
-export async function createConversation(participant: UserProfile, currentUserId: string): Promise<Conversation> {
+export async function createConversation(
+  participant: UserProfile,
+  currentUserId: string,
+): Promise<Conversation> {
   const conversations = await getConversations(currentUserId);
-  const existing = conversations.find(c => c.participantId === participant.id);
+  const existing = conversations.find(
+    (c) => c.participantId === participant.id,
+  );
   if (existing) return existing;
 
   let serverConversationId: string | undefined;
-  
+
   // Create conversation on server
   try {
     const url = new URL("/api/conversations", getApiUrl());
@@ -304,13 +412,13 @@ export async function createConversation(participant: UserProfile, currentUserId
 export async function updateConversationLastMessage(
   conversationId: string,
   message: string,
-  userId?: string
+  userId?: string,
 ): Promise<void> {
-  const currentUserId = userId || await getCurrentUserId();
+  const currentUserId = userId || (await getCurrentUserId());
   if (!currentUserId) return;
-  
+
   const conversations = await getConversations(currentUserId);
-  const index = conversations.findIndex(c => c.id === conversationId);
+  const index = conversations.findIndex((c) => c.id === conversationId);
   if (index !== -1) {
     conversations[index].lastMessage = message;
     conversations[index].lastMessageTime = new Date().toISOString();

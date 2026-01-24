@@ -23,7 +23,18 @@ type OptionalProfileScreenProps = {
   route: RouteProp<AuthStackParamList, "OptionalProfile">;
 };
 
-const FOODS = ["한식", "일식", "양식", "중식", "커피", "와인", "디저트", "건강식", "분식", "파인다이닝"];
+const FOODS = [
+  "한식",
+  "일식",
+  "양식",
+  "중식",
+  "커피",
+  "와인",
+  "디저트",
+  "건강식",
+  "분식",
+  "파인다이닝",
+];
 const RELIGIONS = ["무교", "기독교", "천주교", "불교", "원불교", "기타"];
 const DRINKING_OPTIONS = ["안 마심", "가끔", "자주", "즐김"];
 const SMOKING_OPTIONS = ["비흡연", "가끔", "흡연"];
@@ -31,8 +42,20 @@ const EDUCATION_OPTIONS = ["고졸", "전문대졸", "대졸", "석사", "박사
 const MARITAL_OPTIONS = ["미혼", "돌싱"];
 const BODY_TYPES = ["마름", "보통", "통통", "근육질", "건장", "글래머"];
 
-export default function OptionalProfileScreen({ navigation, route }: OptionalProfileScreenProps) {
-  const { gender, name, phoneNumber, password, age, location, occupation, hobbies } = route.params;
+export default function OptionalProfileScreen({
+  navigation,
+  route,
+}: OptionalProfileScreenProps) {
+  const {
+    gender,
+    name,
+    phoneNumber,
+    password,
+    age,
+    location,
+    occupation,
+    hobbies,
+  } = route.params;
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { register } = useAuth();
@@ -69,7 +92,9 @@ export default function OptionalProfileScreen({ navigation, route }: OptionalPro
   const toggleFood = (food: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedFoods((prev) =>
-      prev.includes(food) ? prev.filter((f) => f !== food) : [...prev, food].slice(0, 3)
+      prev.includes(food)
+        ? prev.filter((f) => f !== food)
+        : [...prev, food].slice(0, 3),
     );
   };
 
@@ -104,7 +129,7 @@ export default function OptionalProfileScreen({ navigation, route }: OptionalPro
         hobbies,
         foodPreferences: selectedFoods,
         bio: bio.trim(),
-        photos: photos.map(url => ({ url, approved: false })),
+        photos: photos.map((url) => ({ url, approved: false })),
         religion: religion || undefined,
         drinking: drinking || undefined,
         smoking: smoking || undefined,
@@ -172,7 +197,7 @@ export default function OptionalProfileScreen({ navigation, route }: OptionalPro
     title: string,
     options: string[],
     value: string,
-    setValue: (v: string) => void
+    setValue: (v: string) => void,
   ) => (
     <View style={styles.tagsSection}>
       <View style={styles.labelRow}>
@@ -191,12 +216,18 @@ export default function OptionalProfileScreen({ navigation, route }: OptionalPro
             style={[
               styles.tagButton,
               {
-                backgroundColor: value === item ? AppColors.accent + "20" : theme.backgroundDefault,
+                backgroundColor:
+                  value === item
+                    ? AppColors.accent + "20"
+                    : theme.backgroundDefault,
                 borderColor: value === item ? AppColors.accent : theme.border,
               },
             ]}
           >
-            <ThemedText type="small" style={{ color: value === item ? AppColors.accent : theme.text }}>
+            <ThemedText
+              type="small"
+              style={{ color: value === item ? AppColors.accent : theme.text }}
+            >
               {item}
             </ThemedText>
           </Pressable>
@@ -233,28 +264,48 @@ export default function OptionalProfileScreen({ navigation, route }: OptionalPro
             <ThemedText type="small" style={{ color: theme.textSecondary }}>
               프로필 완성도
             </ThemedText>
-            <ThemedText type="body" style={{ color: AppColors.primary, fontWeight: "600" }}>
+            <ThemedText
+              type="body"
+              style={{ color: AppColors.primary, fontWeight: "600" }}
+            >
               {progress}%
             </ThemedText>
           </View>
-          <View style={[styles.progressBarBg, { backgroundColor: theme.backgroundDefault }]}>
+          <View
+            style={[
+              styles.progressBarBg,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
             <View
               style={[
                 styles.progressBarFill,
                 {
                   width: `${progress}%`,
-                  backgroundColor: progress >= 80 ? AppColors.success : progress >= 50 ? AppColors.primary : AppColors.warning,
+                  backgroundColor:
+                    progress >= 80
+                      ? AppColors.success
+                      : progress >= 50
+                        ? AppColors.primary
+                        : AppColors.warning,
                 },
               ]}
             />
           </View>
           {progress < 100 && (
-            <ThemedText type="small" style={{ color: theme.textSecondary, textAlign: "center", marginTop: Spacing.xs }}>
+            <ThemedText
+              type="small"
+              style={{
+                color: theme.textSecondary,
+                textAlign: "center",
+                marginTop: Spacing.xs,
+              }}
+            >
               {progress >= 80
                 ? "거의 다 되었어요! 🎉"
                 : progress >= 50
-                ? "절반 넘게 완성했어요! 💪"
-                : "프로필을 채우면 매칭 확률이 올라가요!"}
+                  ? "절반 넘게 완성했어요! 💪"
+                  : "프로필을 채우면 매칭 확률이 올라가요!"}
             </ThemedText>
           )}
         </View>
@@ -266,13 +317,20 @@ export default function OptionalProfileScreen({ navigation, route }: OptionalPro
             사진 (최대 5장)
           </ThemedText>
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoScroll}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.photoScroll}
+        >
           {photos.map((uri, index) => (
             <View key={index} style={styles.photoWrapper}>
               <Image source={{ uri }} style={styles.photo} />
               <Pressable
                 onPress={() => removePhoto(index)}
-                style={[styles.removePhoto, { backgroundColor: AppColors.error }]}
+                style={[
+                  styles.removePhoto,
+                  { backgroundColor: AppColors.error },
+                ]}
               >
                 <Feather name="x" size={14} color="#fff" />
               </Pressable>
@@ -281,7 +339,13 @@ export default function OptionalProfileScreen({ navigation, route }: OptionalPro
           {photos.length < 5 ? (
             <Pressable
               onPress={pickImage}
-              style={[styles.addPhoto, { backgroundColor: theme.backgroundDefault, borderColor: theme.border }]}
+              style={[
+                styles.addPhoto,
+                {
+                  backgroundColor: theme.backgroundDefault,
+                  borderColor: theme.border,
+                },
+              ]}
             >
               <Feather name="plus" size={24} color={theme.textSecondary} />
             </Pressable>
@@ -303,7 +367,12 @@ export default function OptionalProfileScreen({ navigation, route }: OptionalPro
       {renderTagSection("음주", DRINKING_OPTIONS, drinking, setDrinking)}
       {renderTagSection("흡연", SMOKING_OPTIONS, smoking, setSmoking)}
       {renderTagSection("학력", EDUCATION_OPTIONS, education, setEducation)}
-      {renderTagSection("결혼 여부", MARITAL_OPTIONS, maritalStatus, setMaritalStatus)}
+      {renderTagSection(
+        "결혼 여부",
+        MARITAL_OPTIONS,
+        maritalStatus,
+        setMaritalStatus,
+      )}
       {renderTagSection("체형", BODY_TYPES, bodyType, setBodyType)}
 
       <View style={styles.tagsSection}>
@@ -323,14 +392,18 @@ export default function OptionalProfileScreen({ navigation, route }: OptionalPro
                   backgroundColor: selectedFoods.includes(food)
                     ? AppColors.accent + "20"
                     : theme.backgroundDefault,
-                  borderColor: selectedFoods.includes(food) ? AppColors.accent : theme.border,
+                  borderColor: selectedFoods.includes(food)
+                    ? AppColors.accent
+                    : theme.border,
                 },
               ]}
             >
               <ThemedText
                 type="small"
                 style={{
-                  color: selectedFoods.includes(food) ? AppColors.accent : theme.text,
+                  color: selectedFoods.includes(food)
+                    ? AppColors.accent
+                    : theme.text,
                 }}
               >
                 {food}
@@ -340,12 +413,23 @@ export default function OptionalProfileScreen({ navigation, route }: OptionalPro
         </View>
       </View>
 
-      <Button onPress={handleComplete} style={styles.button} disabled={isLoading}>
+      <Button
+        onPress={handleComplete}
+        style={styles.button}
+        disabled={isLoading}
+      >
         완료
       </Button>
 
-      <Pressable onPress={handleSkip} style={styles.skipButton} disabled={isLoading}>
-        <ThemedText type="body" style={[styles.skipText, { color: theme.textSecondary }]}>
+      <Pressable
+        onPress={handleSkip}
+        style={styles.skipButton}
+        disabled={isLoading}
+      >
+        <ThemedText
+          type="body"
+          style={[styles.skipText, { color: theme.textSecondary }]}
+        >
           건너뛰기
         </ThemedText>
       </Pressable>

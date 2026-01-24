@@ -1,5 +1,13 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  varchar,
+  integer,
+  boolean,
+  timestamp,
+  jsonb,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -17,7 +25,9 @@ export const users = pgTable("users", {
   bio: text("bio"),
   hobbies: jsonb("hobbies").$type<string[]>().default([]),
   foodPreferences: jsonb("food_preferences").$type<string[]>().default([]),
-  photos: jsonb("photos").$type<{ url: string; approved: boolean }[]>().default([]),
+  photos: jsonb("photos")
+    .$type<{ url: string; approved: boolean }[]>()
+    .default([]),
   religion: text("religion"),
   drinking: text("drinking"),
   smoking: text("smoking"),
@@ -51,33 +61,46 @@ export const conversations = pgTable("conversations", {
   id: varchar("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
-  user1Id: varchar("user1_id").notNull().references(() => users.id),
-  user2Id: varchar("user2_id").notNull().references(() => users.id),
+  user1Id: varchar("user1_id")
+    .notNull()
+    .references(() => users.id),
+  user2Id: varchar("user2_id")
+    .notNull()
+    .references(() => users.id),
   lastMessageAt: timestamp("last_message_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const conversationsRelations = relations(conversations, ({ one, many }) => ({
-  user1: one(users, {
-    fields: [conversations.user1Id],
-    references: [users.id],
-    relationName: "user1",
+export const conversationsRelations = relations(
+  conversations,
+  ({ one, many }) => ({
+    user1: one(users, {
+      fields: [conversations.user1Id],
+      references: [users.id],
+      relationName: "user1",
+    }),
+    user2: one(users, {
+      fields: [conversations.user2Id],
+      references: [users.id],
+      relationName: "user2",
+    }),
+    messages: many(messages),
   }),
-  user2: one(users, {
-    fields: [conversations.user2Id],
-    references: [users.id],
-    relationName: "user2",
-  }),
-  messages: many(messages),
-}));
+);
 
 export const messages = pgTable("messages", {
   id: varchar("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
-  conversationId: varchar("conversation_id").notNull().references(() => conversations.id),
-  senderId: varchar("sender_id").notNull().references(() => users.id),
-  receiverId: varchar("receiver_id").notNull().references(() => users.id),
+  conversationId: varchar("conversation_id")
+    .notNull()
+    .references(() => conversations.id),
+  senderId: varchar("sender_id")
+    .notNull()
+    .references(() => users.id),
+  receiverId: varchar("receiver_id")
+    .notNull()
+    .references(() => users.id),
   content: text("content").notNull(),
   read: boolean("read").default(false),
   createdAt: timestamp("created_at").defaultNow(),
@@ -104,7 +127,9 @@ export const paymentRequests = pgTable("payment_requests", {
   id: varchar("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id),
   amount: integer("amount").notNull().default(250000),
   status: text("status").notNull().default("pending"),
   depositorName: text("depositor_name"),
@@ -114,28 +139,37 @@ export const paymentRequests = pgTable("payment_requests", {
   notes: text("notes"),
 });
 
-export const paymentRequestsRelations = relations(paymentRequests, ({ one }) => ({
-  user: one(users, {
-    fields: [paymentRequests.userId],
-    references: [users.id],
+export const paymentRequestsRelations = relations(
+  paymentRequests,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [paymentRequests.userId],
+      references: [users.id],
+    }),
   }),
-}));
+);
 
 export const reports = pgTable("reports", {
   id: varchar("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
-  reporterId: varchar("reporter_id").notNull().references(() => users.id),
-  reportedUserId: varchar("reported_user_id").notNull().references(() => users.id),
+  reporterId: varchar("reporter_id")
+    .notNull()
+    .references(() => users.id),
+  reportedUserId: varchar("reported_user_id")
+    .notNull()
+    .references(() => users.id),
   reason: text("reason").notNull(),
   description: text("description"),
-  messageSnapshot: jsonb("message_snapshot").$type<Array<{
-    id: string;
-    senderId: string;
-    senderName: string;
-    content: string;
-    createdAt: Date;
-  }>>(),
+  messageSnapshot: jsonb("message_snapshot").$type<
+    Array<{
+      id: string;
+      senderId: string;
+      senderName: string;
+      content: string;
+      createdAt: Date;
+    }>
+  >(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -156,8 +190,12 @@ export const blocks = pgTable("blocks", {
   id: varchar("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
-  blockerId: varchar("blocker_id").notNull().references(() => users.id),
-  blockedUserId: varchar("blocked_user_id").notNull().references(() => users.id),
+  blockerId: varchar("blocker_id")
+    .notNull()
+    .references(() => users.id),
+  blockedUserId: varchar("blocked_user_id")
+    .notNull()
+    .references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -178,7 +216,9 @@ export const csMemos = pgTable("cs_memos", {
   id: varchar("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => users.id),
   memo: text("memo").notNull(),
   adminId: text("admin_id").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
@@ -204,12 +244,15 @@ export const adminActionLogs = pgTable("admin_action_logs", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const adminActionLogsRelations = relations(adminActionLogs, ({ one }) => ({
-  targetUser: one(users, {
-    fields: [adminActionLogs.targetUserId],
-    references: [users.id],
+export const adminActionLogsRelations = relations(
+  adminActionLogs,
+  ({ one }) => ({
+    targetUser: one(users, {
+      fields: [adminActionLogs.targetUserId],
+      references: [users.id],
+    }),
   }),
-}));
+);
 
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -229,7 +272,9 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
   read: true,
 });
 
-export const insertPaymentRequestSchema = createInsertSchema(paymentRequests).omit({
+export const insertPaymentRequestSchema = createInsertSchema(
+  paymentRequests,
+).omit({
   id: true,
   requestedAt: true,
   processedAt: true,
@@ -252,7 +297,9 @@ export const insertCsMemoSchema = createInsertSchema(csMemos).omit({
   updatedAt: true,
 });
 
-export const insertAdminActionLogSchema = createInsertSchema(adminActionLogs).omit({
+export const insertAdminActionLogSchema = createInsertSchema(
+  adminActionLogs,
+).omit({
   id: true,
   createdAt: true,
 });

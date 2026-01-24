@@ -45,38 +45,38 @@ export default function AuthStackNavigator() {
         headerBackTitle: "뒤로",
       }}
     >
-      <Stack.Screen 
-        name="Welcome" 
-        component={WelcomeScreen} 
+      <Stack.Screen
+        name="Welcome"
+        component={WelcomeScreen}
         options={{ headerShown: false }}
       />
-      <Stack.Screen 
-        name="Login" 
+      <Stack.Screen
+        name="Login"
         component={LoginScreen}
         options={{ headerTitle: "로그인" }}
       />
-      <Stack.Screen 
-        name="GenderSelection" 
+      <Stack.Screen
+        name="GenderSelection"
         component={GenderSelectionScreen}
         options={{ headerTitle: "성별 선택" }}
       />
-      <Stack.Screen 
-        name="ProfileSetup" 
+      <Stack.Screen
+        name="ProfileSetup"
         component={ProfileSetupScreen}
         options={{ headerTitle: "기본 정보" }}
       />
-      <Stack.Screen 
-        name="OptionalProfile" 
+      <Stack.Screen
+        name="OptionalProfile"
         component={OptionalProfileScreen}
         options={{ headerTitle: "추가 정보" }}
       />
-      <Stack.Screen 
-        name="PhoneVerification" 
+      <Stack.Screen
+        name="PhoneVerification"
         component={PhoneVerificationScreen}
         options={{ headerTitle: "전화번호 인증" }}
       />
-      <Stack.Screen 
-        name="Subscription" 
+      <Stack.Screen
+        name="Subscription"
         component={SubscriptionScreen}
         options={{ headerTitle: "킹 멤버십" }}
       />

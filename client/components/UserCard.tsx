@@ -44,7 +44,7 @@ export function UserCard({ user, onPress, index = 0 }: UserCardProps) {
   };
 
   const getAvatarSource = () => {
-    const approvedPhotos = user.photos?.filter(p => p.approved) || [];
+    const approvedPhotos = user.photos?.filter((p) => p.approved) || [];
     if (approvedPhotos.length > 0) {
       return { uri: approvedPhotos[0].url };
     }
@@ -52,7 +52,7 @@ export function UserCard({ user, onPress, index = 0 }: UserCardProps) {
       ? require("../../assets/images/default-avatar-female.png")
       : require("../../assets/images/default-avatar-male.png");
   };
-  
+
   const avatarSource = getAvatarSource();
 
   const timeSinceActive = () => {
@@ -87,7 +87,12 @@ export function UserCard({ user, onPress, index = 0 }: UserCardProps) {
           </View>
         ) : null}
         {user.phoneVerified ? (
-          <View style={[styles.verifiedBadge, { backgroundColor: AppColors.success }]}>
+          <View
+            style={[
+              styles.verifiedBadge,
+              { backgroundColor: AppColors.success },
+            ]}
+          >
             <Feather name="check" size={10} color="#fff" />
           </View>
         ) : null}

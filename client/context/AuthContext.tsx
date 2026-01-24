@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { UserProfile, Gender } from "@/types";
 import { apiRequest, getApiUrl } from "@/lib/query-client";
@@ -9,7 +15,10 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   canSendMessages: boolean;
-  login: (phoneNumber: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  login: (
+    phoneNumber: string,
+    password: string,
+  ) => Promise<{ success: boolean; message?: string }>;
   register: (user: UserProfile, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (updates: Partial<UserProfile>) => Promise<void>;
@@ -36,22 +45,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (stored) {
         const userData = JSON.parse(stored);
         setUser(userData);
-        
+
         // Set current user ID for conversation storage
         if (userData.id) {
           await setCurrentUserId(userData.id);
         }
-        
-        const isRealId = userData.id && !userData.id.startsWith("local_") && !userData.id.startsWith("user_");
+
+        const isRealId =
+          userData.id &&
+          !userData.id.startsWith("local_") &&
+          !userData.id.startsWith("user_");
         if (isRealId) {
           try {
-            const res = await fetch(new URL(`/api/users/${userData.id}`, getApiUrl()).href);
+            const res = await fetch(
+              new URL(`/api/users/${userData.id}`, getApiUrl()).href,
+            );
             if (res.ok) {
               const data = await res.json();
               if (data.success && data.user) {
-                const mergedUser = { ...userData, ...data.user, onboardingComplete: userData.onboardingComplete };
+                const mergedUser = {
+                  ...userData,
+                  ...data.user,
+                  onboardingComplete: userData.onboardingComplete,
+                };
                 setUser(mergedUser);
-                await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(mergedUser));
+                await AsyncStorage.setItem(
+                  STORAGE_KEY,
+                  JSON.stringify(mergedUser),
+                );
               }
             }
           } catch (e) {
@@ -66,7 +87,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (phoneNumber: string, password: string): Promise<{ success: boolean; message?: string }> => {
+  const login = async (
+    phoneNumber: string,
+    password: string,
+  ): Promise<{ success: boolean; message?: string }> => {
     try {
       const res = await fetch(new URL("/api/auth/login", getApiUrl()).href, {
         method: "POST",
@@ -82,7 +106,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(userData);
         return { success: true };
       }
-      return { success: false, message: data.message || "로그인에 실패했습니다." };
+      return {
+        success: false,
+        message: data.message || "로그인에 실패했습니다.",
+      };
     } catch (error) {
       console.error("Failed to login:", error);
       return { success: false, message: "로그인 중 오류가 발생했습니다." };
@@ -92,8 +119,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (userData: UserProfile, password: string) => {
     try {
       let savedUser = userData;
-      
-      const isTemporaryId = !userData.id || userData.id.startsWith("local_") || userData.id.startsWith("user_");
+
+      const isTemporaryId =
+        !userData.id ||
+        userData.id.startsWith("local_") ||
+        userData.id.startsWith("user_");
       if (isTemporaryId) {
         try {
           const res = await apiRequest("POST", "/api/auth/register", {
@@ -125,7 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           savedUser = { ...userData, id: userData.id || `local_${Date.now()}` };
         }
       }
-      
+
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(savedUser));
       // Set current user ID for user-specific conversation storage
       if (savedUser.id) {
@@ -153,8 +183,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateUser = async (updates: Partial<UserProfile>) => {
     if (!user) return;
     const updatedUser = { ...user, ...updates };
-    
-    const isRealId = user.id && !user.id.startsWith("local_") && !user.id.startsWith("user_");
+
+    const isRealId =
+      user.id && !user.id.startsWith("local_") && !user.id.startsWith("user_");
     if (isRealId) {
       try {
         await apiRequest("PATCH", `/api/users/${user.id}`, updates);
@@ -162,7 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log("Could not sync update to server");
       }
     }
-    
+
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
     setUser(updatedUser);
   };

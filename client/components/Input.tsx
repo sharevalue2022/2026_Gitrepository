@@ -1,5 +1,11 @@
 import React, { useState } from "react";
-import { StyleSheet, TextInput, View, TextInputProps, Pressable } from "react-native";
+import {
+  StyleSheet,
+  TextInput,
+  View,
+  TextInputProps,
+  Pressable,
+} from "react-native";
 import { Feather } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
@@ -29,8 +35,8 @@ export function Input({
   const borderColor = error
     ? AppColors.error
     : isFocused
-    ? AppColors.primary
-    : theme.border;
+      ? AppColors.primary
+      : theme.border;
 
   return (
     <View style={styles.container}>
@@ -76,7 +82,10 @@ export function Input({
         ) : null}
       </View>
       {error ? (
-        <ThemedText type="small" style={[styles.error, { color: AppColors.error }]}>
+        <ThemedText
+          type="small"
+          style={[styles.error, { color: AppColors.error }]}
+        >
           {error}
         </ThemedText>
       ) : null}

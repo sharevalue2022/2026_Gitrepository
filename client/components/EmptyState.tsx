@@ -26,7 +26,9 @@ export function EmptyState({
 
   return (
     <Animated.View style={styles.container} entering={FadeIn.duration(400)}>
-      {image ? <Image source={image} style={styles.image} resizeMode="contain" /> : null}
+      {image ? (
+        <Image source={image} style={styles.image} resizeMode="contain" />
+      ) : null}
       <ThemedText type="h3" style={styles.title}>
         {title}
       </ThemedText>

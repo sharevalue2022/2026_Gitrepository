@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import { StyleSheet, View, ScrollView, Image, Modal, Pressable } from "react-native";
+import {
+  StyleSheet,
+  View,
+  ScrollView,
+  Image,
+  Modal,
+  Pressable,
+} from "react-native";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,20 +25,26 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/context/AuthContext";
 import { Spacing, BorderRadius, AppColors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
-import { calculateProfileCompleteness, getCompletenessMessage, getMissingFields } from "@/lib/profileCompleteness";
+import {
+  calculateProfileCompleteness,
+  getCompletenessMessage,
+  getMissingFields,
+} from "@/lib/profileCompleteness";
 
 export default function ProfileScreen() {
   const { theme, isDark } = useTheme();
   const { user, logout } = useAuth();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const headerHeight = useHeaderHeight();
   const tabBarHeight = useBottomTabBarHeight();
   const insets = useSafeAreaInsets();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const avatarSource = user?.gender === "female"
-    ? require("../../assets/images/default-avatar-female.png")
-    : require("../../assets/images/default-avatar-male.png");
+  const avatarSource =
+    user?.gender === "female"
+      ? require("../../assets/images/default-avatar-female.png")
+      : require("../../assets/images/default-avatar-male.png");
 
   const handleEditProfile = () => {
     navigation.navigate("EditProfile");
@@ -49,7 +62,7 @@ export default function ProfileScreen() {
       CommonActions.reset({
         index: 0,
         routes: [{ name: "Auth" }],
-      })
+      }),
     );
   };
 
@@ -83,7 +96,12 @@ export default function ProfileScreen() {
             </View>
           ) : null}
           {user.isVerified ? (
-            <View style={[styles.verifiedBadge, { backgroundColor: AppColors.success }]}>
+            <View
+              style={[
+                styles.verifiedBadge,
+                { backgroundColor: AppColors.success },
+              ]}
+            >
               <Feather name="check" size={14} color="#fff" />
             </View>
           ) : null}
@@ -94,7 +112,11 @@ export default function ProfileScreen() {
           </ThemedText>
           {user.phoneVerified ? (
             <View style={styles.verifiedTextBadge}>
-              <Feather name="check-circle" size={16} color={AppColors.success} />
+              <Feather
+                name="check-circle"
+                size={16}
+                color={AppColors.success}
+              />
               <ThemedText type="small" style={styles.verifiedText}>
                 본인인증
               </ThemedText>
@@ -103,7 +125,10 @@ export default function ProfileScreen() {
         </View>
         <View style={styles.locationRow}>
           <Feather name="map-pin" size={14} color={theme.textSecondary} />
-          <ThemedText type="body" style={{ color: theme.textSecondary, marginLeft: Spacing.xs }}>
+          <ThemedText
+            type="body"
+            style={{ color: theme.textSecondary, marginLeft: Spacing.xs }}
+          >
             {user.location}
           </ThemedText>
         </View>
@@ -119,8 +144,12 @@ export default function ProfileScreen() {
           style={[
             styles.completenessCard,
             {
-              backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.03)",
-              borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
+              backgroundColor: isDark
+                ? "rgba(255, 255, 255, 0.05)"
+                : "rgba(0, 0, 0, 0.03)",
+              borderColor: isDark
+                ? "rgba(255, 255, 255, 0.1)"
+                : "rgba(0, 0, 0, 0.1)",
             },
           ]}
         >
@@ -144,13 +173,27 @@ export default function ProfileScreen() {
           </View>
 
           {/* Progress Bar */}
-          <View style={[styles.progressBarContainer, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)" }]}>
+          <View
+            style={[
+              styles.progressBarContainer,
+              {
+                backgroundColor: isDark
+                  ? "rgba(255, 255, 255, 0.1)"
+                  : "rgba(0, 0, 0, 0.1)",
+              },
+            ]}
+          >
             <View
               style={[
                 styles.progressBar,
                 {
                   width: `${completenessScore}%`,
-                  backgroundColor: completenessScore >= 80 ? AppColors.success : completenessScore >= 60 ? AppColors.primary : AppColors.warning,
+                  backgroundColor:
+                    completenessScore >= 80
+                      ? AppColors.success
+                      : completenessScore >= 60
+                        ? AppColors.primary
+                        : AppColors.warning,
                 },
               ]}
             />
@@ -159,7 +202,10 @@ export default function ProfileScreen() {
           {/* Missing Fields */}
           {missingFields.length > 0 && (
             <View style={styles.missingFieldsContainer}>
-              <ThemedText type="small" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
+              <ThemedText
+                type="small"
+                style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}
+              >
                 추가하면 좋은 정보:
               </ThemedText>
               <View style={styles.missingFieldsTags}>
@@ -168,10 +214,17 @@ export default function ProfileScreen() {
                     key={index}
                     style={[
                       styles.missingFieldTag,
-                      { backgroundColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)" },
+                      {
+                        backgroundColor: isDark
+                          ? "rgba(255, 255, 255, 0.1)"
+                          : "rgba(0, 0, 0, 0.05)",
+                      },
                     ]}
                   >
-                    <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                    <ThemedText
+                      type="small"
+                      style={{ color: theme.textSecondary }}
+                    >
                       {field}
                     </ThemedText>
                   </View>
@@ -180,10 +233,17 @@ export default function ProfileScreen() {
                   <View
                     style={[
                       styles.missingFieldTag,
-                      { backgroundColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)" },
+                      {
+                        backgroundColor: isDark
+                          ? "rgba(255, 255, 255, 0.1)"
+                          : "rgba(0, 0, 0, 0.05)",
+                      },
                     ]}
                   >
-                    <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                    <ThemedText
+                      type="small"
+                      style={{ color: theme.textSecondary }}
+                    >
                       +{missingFields.length - 3}
                     </ThemedText>
                   </View>
@@ -196,11 +256,24 @@ export default function ProfileScreen() {
 
       <Animated.View entering={FadeInUp.delay(100).duration(500)}>
         <ProfileSection title="소개">
-          <ProfileRow icon="briefcase" label="직업" value={user.occupation} showArrow={false} />
+          <ProfileRow
+            icon="briefcase"
+            label="직업"
+            value={user.occupation}
+            showArrow={false}
+          />
           {user.bio ? (
             <View style={styles.bioRow}>
-              <Feather name="edit-3" size={20} color={theme.link} style={styles.bioIcon} />
-              <ThemedText type="body" style={{ color: theme.textSecondary, flex: 1 }}>
+              <Feather
+                name="edit-3"
+                size={20}
+                color={theme.link}
+                style={styles.bioIcon}
+              />
+              <ThemedText
+                type="body"
+                style={{ color: theme.textSecondary, flex: 1 }}
+              >
                 {user.bio}
               </ThemedText>
             </View>
@@ -244,29 +317,48 @@ export default function ProfileScreen() {
                     {user.isKingMember ? "킹 멤버십 활성" : "미가입"}
                   </ThemedText>
                   {user.isKingMember && user.kingMembershipStartDate ? (
-                    <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                      시작일: {new Date(user.kingMembershipStartDate).toLocaleDateString("ko-KR")}
+                    <ThemedText
+                      type="small"
+                      style={{ color: theme.textSecondary }}
+                    >
+                      시작일:{" "}
+                      {new Date(
+                        user.kingMembershipStartDate,
+                      ).toLocaleDateString("ko-KR")}
                     </ThemedText>
                   ) : null}
                 </View>
               </View>
-              
+
               {user.isKingMember && user.kingMembershipStartDate ? (
-                <View style={[styles.expiryBanner, { backgroundColor: theme.backgroundSecondary }]}>
+                <View
+                  style={[
+                    styles.expiryBanner,
+                    { backgroundColor: theme.backgroundSecondary },
+                  ]}
+                >
                   <View style={styles.expiryRow}>
-                    <Feather name="calendar" size={20} color={AppColors.accent} />
+                    <Feather
+                      name="calendar"
+                      size={20}
+                      color={AppColors.accent}
+                    />
                     <View style={styles.expiryTextContainer}>
                       <ThemedText type="body" style={{ fontWeight: "600" }}>
                         만료일
                       </ThemedText>
                       <ThemedText type="h3" style={styles.expiryDate}>
                         {(() => {
-                          const startDate = new Date(user.kingMembershipStartDate!);
-                          const expiryDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000);
-                          return expiryDate.toLocaleDateString("ko-KR", { 
-                            year: "numeric", 
-                            month: "long", 
-                            day: "numeric" 
+                          const startDate = new Date(
+                            user.kingMembershipStartDate!,
+                          );
+                          const expiryDate = new Date(
+                            startDate.getTime() + 30 * 24 * 60 * 60 * 1000,
+                          );
+                          return expiryDate.toLocaleDateString("ko-KR", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
                           });
                         })()}
                       </ThemedText>
@@ -274,10 +366,17 @@ export default function ProfileScreen() {
                     <View style={styles.daysLeftContainer}>
                       <ThemedText type="h2" style={styles.daysLeftNumber}>
                         {(() => {
-                          const startDate = new Date(user.kingMembershipStartDate!);
-                          const expiryDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+                          const startDate = new Date(
+                            user.kingMembershipStartDate!,
+                          );
+                          const expiryDate = new Date(
+                            startDate.getTime() + 30 * 24 * 60 * 60 * 1000,
+                          );
                           const now = new Date();
-                          const daysLeft = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                          const daysLeft = Math.ceil(
+                            (expiryDate.getTime() - now.getTime()) /
+                              (1000 * 60 * 60 * 24),
+                          );
                           return Math.max(0, daysLeft);
                         })()}
                       </ThemedText>
@@ -288,16 +387,33 @@ export default function ProfileScreen() {
                   </View>
                 </View>
               ) : (
-                <View style={[styles.noMembershipBanner, { backgroundColor: theme.backgroundSecondary }]}>
+                <View
+                  style={[
+                    styles.noMembershipBanner,
+                    { backgroundColor: theme.backgroundSecondary },
+                  ]}
+                >
                   <Feather name="info" size={18} color={theme.textSecondary} />
-                  <ThemedText type="body" style={{ color: theme.textSecondary, flex: 1, marginLeft: Spacing.sm }}>
-                    킹 멤버십에 가입하면 여성 회원에게 먼저 메시지를 보낼 수 있습니다.
+                  <ThemedText
+                    type="body"
+                    style={{
+                      color: theme.textSecondary,
+                      flex: 1,
+                      marginLeft: Spacing.sm,
+                    }}
+                  >
+                    킹 멤버십에 가입하면 여성 회원에게 먼저 메시지를 보낼 수
+                    있습니다.
                   </ThemedText>
                 </View>
               )}
-              
-              <Button 
-                onPress={() => navigation.navigate("Main", { screen: "MembershipTab" } as any)}
+
+              <Button
+                onPress={() =>
+                  navigation.navigate("Main", {
+                    screen: "MembershipTab",
+                  } as any)
+                }
                 style={styles.membershipButton}
                 variant={user.isKingMember ? "outline" : "primary"}
               >
@@ -312,14 +428,23 @@ export default function ProfileScreen() {
         <ProfileSection title="계정">
           <View style={styles.verificationRow}>
             <View style={styles.verificationInfo}>
-              <View style={[styles.verificationIcon, { backgroundColor: theme.backgroundDefault }]}>
+              <View
+                style={[
+                  styles.verificationIcon,
+                  { backgroundColor: theme.backgroundDefault },
+                ]}
+              >
                 <Feather name="phone" size={20} color={theme.link} />
               </View>
               <View style={styles.verificationLabels}>
                 <ThemedText type="body">휴대폰 인증</ThemedText>
-                <ThemedText 
-                  type="small" 
-                  style={{ color: user.phoneVerified ? AppColors.success : theme.textSecondary }}
+                <ThemedText
+                  type="small"
+                  style={{
+                    color: user.phoneVerified
+                      ? AppColors.success
+                      : theme.textSecondary,
+                  }}
                 >
                   {user.phoneVerified ? "인증 완료" : "미인증"}
                 </ThemedText>
@@ -327,11 +452,19 @@ export default function ProfileScreen() {
             </View>
             {user.phoneVerified ? (
               <View style={styles.verifiedCheckmark}>
-                <Feather name="check-circle" size={24} color={AppColors.success} />
+                <Feather
+                  name="check-circle"
+                  size={24}
+                  color={AppColors.success}
+                />
               </View>
             ) : (
               <Button
-                onPress={() => navigation.navigate("PhoneVerification", { fromProfile: true })}
+                onPress={() =>
+                  navigation.navigate("PhoneVerification", {
+                    fromProfile: true,
+                  })
+                }
                 style={styles.verifyButton}
                 variant="outline"
               >
@@ -342,12 +475,23 @@ export default function ProfileScreen() {
           {!user.phoneVerified ? (
             <View style={styles.chatLimitationHint}>
               <Feather name="info" size={14} color={theme.textSecondary} />
-              <ThemedText type="small" style={[styles.chatLimitationText, { color: theme.textSecondary }]}>
-                미인증 시 채팅을 받을 수만 있으며, 먼저 대화를 시작할 수 없습니다
+              <ThemedText
+                type="small"
+                style={[
+                  styles.chatLimitationText,
+                  { color: theme.textSecondary },
+                ]}
+              >
+                미인증 시 채팅을 받을 수만 있으며, 먼저 대화를 시작할 수
+                없습니다
               </ThemedText>
             </View>
           ) : null}
-          <ProfileRow icon="shield" label="개인정보 및 보안" onPress={() => {}} />
+          <ProfileRow
+            icon="shield"
+            label="개인정보 및 보안"
+            onPress={() => {}}
+          />
           <ProfileRow icon="bell" label="알림 설정" onPress={() => {}} />
           <ProfileRow icon="help-circle" label="도움말" onPress={() => {}} />
         </ProfileSection>
@@ -375,16 +519,28 @@ export default function ProfileScreen() {
           style={styles.modalOverlay}
           onPress={() => setShowLogoutModal(false)}
         >
-          <View style={[styles.modalContent, { backgroundColor: theme.backgroundDefault }]}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.backgroundDefault },
+            ]}
+          >
             <ThemedText type="h4" style={styles.modalTitle}>
               로그아웃
             </ThemedText>
-            <ThemedText type="body" style={[styles.modalMessage, { color: theme.textSecondary }]}>
+            <ThemedText
+              type="body"
+              style={[styles.modalMessage, { color: theme.textSecondary }]}
+            >
               로그아웃 하시겠습니까?
             </ThemedText>
             <View style={styles.modalButtons}>
               <Pressable
-                style={[styles.modalButton, styles.cancelButton, { backgroundColor: theme.backgroundSecondary }]}
+                style={[
+                  styles.modalButton,
+                  styles.cancelButton,
+                  { backgroundColor: theme.backgroundSecondary },
+                ]}
                 onPress={() => setShowLogoutModal(false)}
               >
                 <ThemedText type="body">취소</ThemedText>
@@ -393,7 +549,9 @@ export default function ProfileScreen() {
                 style={[styles.modalButton, styles.logoutButton]}
                 onPress={confirmLogout}
               >
-                <ThemedText type="body" style={{ color: "#fff" }}>로그아웃</ThemedText>
+                <ThemedText type="body" style={{ color: "#fff" }}>
+                  로그아웃
+                </ThemedText>
               </Pressable>
             </View>
           </View>
@@ -458,8 +616,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginBottom: Spacing.xs,
   },
-  name: {
-  },
+  name: {},
   verifiedTextBadge: {
     flexDirection: "row",
     alignItems: "center",
