@@ -192,8 +192,8 @@ export default function ProfileScreen() {
                     completenessScore >= 80
                       ? AppColors.success
                       : completenessScore >= 60
-                        ? AppColors.primary
-                        : AppColors.warning,
+                        ? AppColors.accent
+                        : AppColors.accent,
                 },
               ]}
             />

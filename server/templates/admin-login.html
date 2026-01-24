@@ -188,6 +188,7 @@
 
           if (data.success) {
             localStorage.setItem('admin_token', data.token);
+            localStorage.setItem('admin_username', username);
             window.location.href = '/admin/dashboard';
           } else {
             errorMessage.textContent = data.message || '로그인에 실패했습니다.';

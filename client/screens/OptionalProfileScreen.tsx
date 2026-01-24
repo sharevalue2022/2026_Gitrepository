@@ -286,8 +286,8 @@ export default function OptionalProfileScreen({
                     progress >= 80
                       ? AppColors.success
                       : progress >= 50
-                        ? AppColors.primary
-                        : AppColors.warning,
+                        ? AppColors.accent
+                        : AppColors.accent,
                 },
               ]}
             />
