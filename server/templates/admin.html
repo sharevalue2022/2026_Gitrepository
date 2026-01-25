@@ -730,6 +730,7 @@
         <button class="tab" data-section="risky" onclick="setSection('risky')">⚠️ 위험 유저 감지</button>
         <button class="tab" data-section="reports" onclick="setSection('reports')">📢 신고 내역</button>
         <button class="tab" data-section="action-logs" onclick="setSection('action-logs')">📋 운영자 행동 로그</button>
+        <button class="tab" data-section="cms" onclick="setSection('cms')">📝 콘텐츠 관리</button>
       </div>
 
       <div id="requests-section">
@@ -837,6 +838,44 @@
 
         <div id="action-logs-list">
           <div class="loading">로딩 중...</div>
+        </div>
+      </div>
+
+      <!-- CMS Section -->
+      <div id="cms-section" style="display: none;">
+        <div class="info-banner" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 16px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 24px;">📝</span>
+          <div>
+            <div style="font-weight: 600; margin-bottom: 4px;">콘텐츠 관리 시스템</div>
+            <div style="font-size: 14px; opacity: 0.9;">공지사항과 이용 가이드를 관리합니다</div>
+          </div>
+        </div>
+
+        <div class="cms-sub-tabs" style="display: flex; gap: 12px; margin-bottom: 24px;">
+          <button class="sub-tab active" data-cms-type="announcements" onclick="setCmsType('announcements')">공지사항</button>
+          <button class="sub-tab" data-cms-type="guides" onclick="setCmsType('guides')">이용 가이드</button>
+        </div>
+
+        <!-- Announcements Section -->
+        <div id="announcements-section">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="font-size: 18px; font-weight: 600;">공지사항 관리</h3>
+            <button class="btn-primary" onclick="showAnnouncementModal()">+ 새 공지사항</button>
+          </div>
+          <div id="announcements-list">
+            <div class="loading">로딩 중...</div>
+          </div>
+        </div>
+
+        <!-- Usage Guides Section -->
+        <div id="guides-section" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="font-size: 18px; font-weight: 600;">이용 가이드 관리</h3>
+            <button class="btn-primary" onclick="showGuideModal()">+ 새 가이드</button>
+          </div>
+          <div id="guides-list">
+            <div class="loading">로딩 중...</div>
+          </div>
         </div>
       </div>
 
@@ -1194,6 +1233,7 @@
         document.getElementById('risky-section').style.display = section === 'risky' ? 'block' : 'none';
         document.getElementById('reports-section').style.display = section === 'reports' ? 'block' : 'none';
         document.getElementById('action-logs-section').style.display = section === 'action-logs' ? 'block' : 'none';
+        document.getElementById('cms-section').style.display = section === 'cms' ? 'block' : 'none';
 
         if (section === 'risky') {
           loadRiskyUsers();
@@ -1201,6 +1241,8 @@
           loadReports();
         } else if (section === 'action-logs') {
           loadActionLogs();
+        } else if (section === 'cms') {
+          loadAnnouncements();
         }
       }
 
@@ -2176,6 +2218,340 @@
 
       function escapeForJs(text) {
         return text.replace(/`/g, '\\`').replace(/\$/g, '\\$').replace(/\\/g, '\\\\');
+      }
+
+      // ============ CMS Functions ============
+      let currentCmsType = 'announcements';
+      let currentAnnouncement = null;
+      let currentGuide = null;
+
+      function setCmsType(type) {
+        currentCmsType = type;
+        document.querySelectorAll('.cms-sub-tabs .sub-tab').forEach(tab => {
+          tab.classList.toggle('active', tab.dataset.cmsType === type);
+        });
+
+        document.getElementById('announcements-section').style.display = type === 'announcements' ? 'block' : 'none';
+        document.getElementById('guides-section').style.display = type === 'guides' ? 'block' : 'none';
+
+        if (type === 'announcements') {
+          loadAnnouncements();
+        } else {
+          loadUsageGuides();
+        }
+      }
+
+      async function loadAnnouncements() {
+        try {
+          const response = await fetch('/api/admin/announcements');
+          const data = await response.json();
+
+          if (data.success) {
+            const container = document.getElementById('announcements-list');
+            if (data.announcements.length === 0) {
+              container.innerHTML = '<div class="empty-state"><h3>공지사항이 없습니다</h3><p>새 공지사항을 추가해주세요.</p></div>';
+              return;
+            }
+
+            container.innerHTML = data.announcements.map(ann => `
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h4 style="margin-bottom: 8px;">${escapeHtml(ann.title)}</h4>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                      <span style="display: inline-block; padding: 4px 12px; background: ${ann.category === 'event' ? '#dbeafe' : ann.category === 'payment' ? '#fef3c7' : ann.category === 'refund' ? '#fee2e2' : '#f3f4f6'}; color: ${ann.category === 'event' ? '#1e40af' : ann.category === 'payment' ? '#92400e' : ann.category === 'refund' ? '#991b1b' : '#374151'}; border-radius: 6px; font-size: 12px;">${ann.category === 'event' ? '이벤트' : ann.category === 'payment' ? '결제' : ann.category === 'refund' ? '환불' : '일반'}</span>
+                      <span style="display: inline-block; padding: 4px 12px; background: ${ann.isActive ? '#dcfce7' : '#f3f4f6'}; color: ${ann.isActive ? '#166534' : '#6b7280'}; border-radius: 6px; font-size: 12px;">${ann.isActive ? '활성' : '비활성'}</span>
+                      <span style="color: #9ca3af; font-size: 13px;">${new Date(ann.createdAt).toLocaleString('ko-KR')}</span>
+                    </div>
+                  </div>
+                  <div style="display: flex; gap: 8px;">
+                    <button class="btn-secondary" onclick="editAnnouncement('${ann.id}')">수정</button>
+                    <button class="btn-danger" onclick="deleteAnnouncement('${ann.id}')">삭제</button>
+                  </div>
+                </div>
+                <p style="color: #6b7280; white-space: pre-wrap; margin-top: 12px;">${escapeHtml(ann.content).substring(0, 200)}${ann.content.length > 200 ? '...' : ''}</p>
+              </div>
+            `).join('');
+          }
+        } catch (error) {
+          console.error('Load announcements error:', error);
+          document.getElementById('announcements-list').innerHTML = '<div class="empty-state"><h3>데이터를 불러올 수 없습니다</h3></div>';
+        }
+      }
+
+      async function loadUsageGuides() {
+        try {
+          const response = await fetch('/api/admin/usage-guides');
+          const data = await response.json();
+
+          if (data.success) {
+            const container = document.getElementById('guides-list');
+            if (data.guides.length === 0) {
+              container.innerHTML = '<div class="empty-state"><h3>이용 가이드가 없습니다</h3><p>새 이용 가이드를 추가해주세요.</p></div>';
+              return;
+            }
+
+            container.innerHTML = data.guides.map(guide => `
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h4 style="margin-bottom: 8px;">${escapeHtml(guide.title)}</h4>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                      <span style="display: inline-block; padding: 4px 12px; background: #e0e7ff; color: #3730a3; border-radius: 6px; font-size: 12px;">순서: ${guide.order}</span>
+                      <span style="display: inline-block; padding: 4px 12px; background: ${guide.isActive ? '#dcfce7' : '#f3f4f6'}; color: ${guide.isActive ? '#166534' : '#6b7280'}; border-radius: 6px; font-size: 12px;">${guide.isActive ? '활성' : '비활성'}</span>
+                      <span style="color: #9ca3af; font-size: 13px;">${new Date(guide.createdAt).toLocaleString('ko-KR')}</span>
+                    </div>
+                  </div>
+                  <div style="display: flex; gap: 8px;">
+                    <button class="btn-secondary" onclick="editGuide('${guide.id}')">수정</button>
+                    <button class="btn-danger" onclick="deleteGuide('${guide.id}')">삭제</button>
+                  </div>
+                </div>
+                <p style="color: #6b7280; white-space: pre-wrap; margin-top: 12px;">${escapeHtml(guide.content).substring(0, 200)}${guide.content.length > 200 ? '...' : ''}</p>
+              </div>
+            `).join('');
+          }
+        } catch (error) {
+          console.error('Load usage guides error:', error);
+          document.getElementById('guides-list').innerHTML = '<div class="empty-state"><h3>데이터를 불러올 수 없습니다</h3></div>';
+        }
+      }
+
+      function showAnnouncementModal(announcement = null) {
+        currentAnnouncement = announcement;
+        const isEdit = !!announcement;
+
+        const title = isEdit ? announcement.title : '';
+        const content = isEdit ? announcement.content : '';
+        const category = isEdit ? announcement.category : 'general';
+        const isActive = isEdit ? announcement.isActive : true;
+
+        const modalHtml = `
+          <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;" onclick="if(event.target === this) this.remove()">
+            <div style="background: white; border-radius: 12px; padding: 24px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
+              <h3 style="margin-bottom: 20px;">${isEdit ? '공지사항 수정' : '새 공지사항 추가'}</h3>
+
+              <div style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">제목</label>
+                <input id="ann-title" type="text" value="${escapeHtml(title)}" style="width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px;" />
+              </div>
+
+              <div style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">카테고리</label>
+                <select id="ann-category" style="width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px;">
+                  <option value="general" ${category === 'general' ? 'selected' : ''}>일반</option>
+                  <option value="event" ${category === 'event' ? 'selected' : ''}>이벤트</option>
+                  <option value="payment" ${category === 'payment' ? 'selected' : ''}>결제</option>
+                  <option value="refund" ${category === 'refund' ? 'selected' : ''}>환불</option>
+                </select>
+              </div>
+
+              <div style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">내용</label>
+                <textarea id="ann-content" rows="8" style="width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; resize: vertical;">${escapeHtml(content)}</textarea>
+              </div>
+
+              <div style="margin-bottom: 20px;">
+                <label style="display: flex; align-items: center; gap: 8px;">
+                  <input id="ann-active" type="checkbox" ${isActive ? 'checked' : ''} />
+                  <span>활성화</span>
+                </label>
+              </div>
+
+              <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button class="btn-secondary" onclick="this.closest('div[style*=fixed]').remove()">취소</button>
+                <button class="btn-primary" onclick="saveAnnouncement(${isEdit})">${isEdit ? '수정' : '추가'}</button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+      }
+
+      function showGuideModal(guide = null) {
+        currentGuide = guide;
+        const isEdit = !!guide;
+
+        const title = isEdit ? guide.title : '';
+        const content = isEdit ? guide.content : '';
+        const order = isEdit ? guide.order : 0;
+        const isActive = isEdit ? guide.isActive : true;
+
+        const modalHtml = `
+          <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;" onclick="if(event.target === this) this.remove()">
+            <div style="background: white; border-radius: 12px; padding: 24px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
+              <h3 style="margin-bottom: 20px;">${isEdit ? '이용 가이드 수정' : '새 이용 가이드 추가'}</h3>
+
+              <div style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">제목</label>
+                <input id="guide-title" type="text" value="${escapeHtml(title)}" style="width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px;" />
+              </div>
+
+              <div style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">순서</label>
+                <input id="guide-order" type="number" value="${order}" style="width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px;" />
+              </div>
+
+              <div style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">내용</label>
+                <textarea id="guide-content" rows="8" style="width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; resize: vertical;">${escapeHtml(content)}</textarea>
+              </div>
+
+              <div style="margin-bottom: 20px;">
+                <label style="display: flex; align-items: center; gap: 8px;">
+                  <input id="guide-active" type="checkbox" ${isActive ? 'checked' : ''} />
+                  <span>활성화</span>
+                </label>
+              </div>
+
+              <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button class="btn-secondary" onclick="this.closest('div[style*=fixed]').remove()">취소</button>
+                <button class="btn-primary" onclick="saveGuide(${isEdit})">${isEdit ? '수정' : '추가'}</button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+      }
+
+      async function saveAnnouncement(isEdit) {
+        const title = document.getElementById('ann-title').value.trim();
+        const content = document.getElementById('ann-content').value.trim();
+        const category = document.getElementById('ann-category').value;
+        const isActive = document.getElementById('ann-active').checked;
+
+        if (!title || !content) {
+          alert('제목과 내용을 입력해주세요.');
+          return;
+        }
+
+        try {
+          const url = isEdit ? `/api/admin/announcements/${currentAnnouncement.id}` : '/api/admin/announcements';
+          const method = isEdit ? 'PUT' : 'POST';
+
+          const response = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title,
+              content,
+              category,
+              isActive,
+              adminId: 'admin' // Should be from session
+            })
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            document.querySelector('div[style*="fixed"]').remove();
+            loadAnnouncements();
+          } else {
+            alert(data.message || '저장 실패');
+          }
+        } catch (error) {
+          console.error('Save announcement error:', error);
+          alert('저장 중 오류가 발생했습니다.');
+        }
+      }
+
+      async function saveGuide(isEdit) {
+        const title = document.getElementById('guide-title').value.trim();
+        const content = document.getElementById('guide-content').value.trim();
+        const order = parseInt(document.getElementById('guide-order').value);
+        const isActive = document.getElementById('guide-active').checked;
+
+        if (!title || !content) {
+          alert('제목과 내용을 입력해주세요.');
+          return;
+        }
+
+        try {
+          const url = isEdit ? `/api/admin/usage-guides/${currentGuide.id}` : '/api/admin/usage-guides';
+          const method = isEdit ? 'PUT' : 'POST';
+
+          const response = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title,
+              content,
+              order,
+              isActive,
+              adminId: 'admin' // Should be from session
+            })
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            document.querySelector('div[style*="fixed"]').remove();
+            loadUsageGuides();
+          } else {
+            alert(data.message || '저장 실패');
+          }
+        } catch (error) {
+          console.error('Save guide error:', error);
+          alert('저장 중 오류가 발생했습니다.');
+        }
+      }
+
+      async function editAnnouncement(id) {
+        try {
+          const response = await fetch(`/api/announcements/${id}`);
+          const data = await response.json();
+          if (data.success) {
+            showAnnouncementModal(data.announcement);
+          }
+        } catch (error) {
+          console.error('Load announcement error:', error);
+        }
+      }
+
+      async function editGuide(id) {
+        try {
+          const response = await fetch(`/api/usage-guides/${id}`);
+          const data = await response.json();
+          if (data.success) {
+            showGuideModal(data.guide);
+          }
+        } catch (error) {
+          console.error('Load guide error:', error);
+        }
+      }
+
+      async function deleteAnnouncement(id) {
+        if (!confirm('이 공지사항을 삭제하시겠습니까?')) return;
+
+        try {
+          const response = await fetch(`/api/admin/announcements/${id}`, { method: 'DELETE' });
+          const data = await response.json();
+          if (data.success) {
+            loadAnnouncements();
+          } else {
+            alert(data.message || '삭제 실패');
+          }
+        } catch (error) {
+          console.error('Delete announcement error:', error);
+          alert('삭제 중 오류가 발생했습니다.');
+        }
+      }
+
+      async function deleteGuide(id) {
+        if (!confirm('이 이용 가이드를 삭제하시겠습니까?')) return;
+
+        try {
+          const response = await fetch(`/api/admin/usage-guides/${id}`, { method: 'DELETE' });
+          const data = await response.json();
+          if (data.success) {
+            loadUsageGuides();
+          } else {
+            alert(data.message || '삭제 실패');
+          }
+        } catch (error) {
+          console.error('Delete guide error:', error);
+          alert('삭제 중 오류가 발생했습니다.');
+        }
       }
 
       loadData();

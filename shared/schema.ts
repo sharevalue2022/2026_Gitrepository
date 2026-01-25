@@ -320,3 +320,49 @@ export type InsertCsMemo = z.infer<typeof insertCsMemoSchema>;
 export type CsMemo = typeof csMemos.$inferSelect;
 export type InsertAdminActionLog = z.infer<typeof insertAdminActionLogSchema>;
 export type AdminActionLog = typeof adminActionLogs.$inferSelect;
+
+// Announcements table (공지사항)
+export const announcements = pgTable("announcements", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  category: text("category").notNull(), // "event", "payment", "refund", "general"
+  isActive: boolean("is_active").default(true),
+  adminId: text("admin_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertAnnouncementSchema = createInsertSchema(announcements).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
+export type Announcement = typeof announcements.$inferSelect;
+
+// Usage Guides table (이용 가이드)
+export const usageGuides = pgTable("usage_guides", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  order: integer("order").notNull().default(0), // For ordering guides
+  isActive: boolean("is_active").default(true),
+  adminId: text("admin_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertUsageGuideSchema = createInsertSchema(usageGuides).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertUsageGuide = z.infer<typeof insertUsageGuideSchema>;
+export type UsageGuide = typeof usageGuides.$inferSelect;

@@ -1510,6 +1510,234 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============ CMS: Announcements (공지사항) ============
+
+  // Get all announcements (for users - only active ones)
+  app.get("/api/announcements", async (req, res) => {
+    try {
+      const announcements = await storage.getActiveAnnouncements();
+      return res.json({ success: true, announcements });
+    } catch (error) {
+      console.error("Get announcements error:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "공지사항을 불러오는 중 오류가 발생했습니다." });
+    }
+  });
+
+  // Get single announcement
+  app.get("/api/announcements/:id", async (req, res) => {
+    try {
+      const announcement = await storage.getAnnouncement(req.params.id);
+      if (!announcement) {
+        return res
+          .status(404)
+          .json({ success: false, message: "공지사항을 찾을 수 없습니다." });
+      }
+      return res.json({ success: true, announcement });
+    } catch (error) {
+      console.error("Get announcement error:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "공지사항을 불러오는 중 오류가 발생했습니다." });
+    }
+  });
+
+  // Admin: Get all announcements (including inactive)
+  app.get("/api/admin/announcements", async (req, res) => {
+    try {
+      const announcements = await storage.getAnnouncements();
+      return res.json({ success: true, announcements });
+    } catch (error) {
+      console.error("Admin get announcements error:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "공지사항을 불러오는 중 오류가 발생했습니다." });
+    }
+  });
+
+  // Admin: Create announcement
+  app.post("/api/admin/announcements", async (req, res) => {
+    try {
+      const { title, content, category, isActive, adminId } = req.body;
+
+      if (!title || !content || !category || !adminId) {
+        return res
+          .status(400)
+          .json({ success: false, message: "필수 정보가 누락되었습니다." });
+      }
+
+      const announcement = await storage.createAnnouncement({
+        title,
+        content,
+        category,
+        isActive: isActive ?? true,
+        adminId,
+      });
+
+      return res.json({ success: true, announcement });
+    } catch (error) {
+      console.error("Create announcement error:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "공지사항 생성 중 오류가 발생했습니다." });
+    }
+  });
+
+  // Admin: Update announcement
+  app.put("/api/admin/announcements/:id", async (req, res) => {
+    try {
+      const { title, content, category, isActive } = req.body;
+
+      const updated = await storage.updateAnnouncement(req.params.id, {
+        title,
+        content,
+        category,
+        isActive,
+      });
+
+      if (!updated) {
+        return res
+          .status(404)
+          .json({ success: false, message: "공지사항을 찾을 수 없습니다." });
+      }
+
+      return res.json({ success: true, announcement: updated });
+    } catch (error) {
+      console.error("Update announcement error:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "공지사항 수정 중 오류가 발생했습니다." });
+    }
+  });
+
+  // Admin: Delete announcement
+  app.delete("/api/admin/announcements/:id", async (req, res) => {
+    try {
+      await storage.deleteAnnouncement(req.params.id);
+      return res.json({ success: true, message: "공지사항이 삭제되었습니다." });
+    } catch (error) {
+      console.error("Delete announcement error:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "공지사항 삭제 중 오류가 발생했습니다." });
+    }
+  });
+
+  // ============ CMS: Usage Guides (이용 가이드) ============
+
+  // Get all usage guides (for users - only active ones)
+  app.get("/api/usage-guides", async (req, res) => {
+    try {
+      const guides = await storage.getActiveUsageGuides();
+      return res.json({ success: true, guides });
+    } catch (error) {
+      console.error("Get usage guides error:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "이용 가이드를 불러오는 중 오류가 발생했습니다." });
+    }
+  });
+
+  // Get single usage guide
+  app.get("/api/usage-guides/:id", async (req, res) => {
+    try {
+      const guide = await storage.getUsageGuide(req.params.id);
+      if (!guide) {
+        return res
+          .status(404)
+          .json({ success: false, message: "이용 가이드를 찾을 수 없습니다." });
+      }
+      return res.json({ success: true, guide });
+    } catch (error) {
+      console.error("Get usage guide error:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "이용 가이드를 불러오는 중 오류가 발생했습니다." });
+    }
+  });
+
+  // Admin: Get all usage guides (including inactive)
+  app.get("/api/admin/usage-guides", async (req, res) => {
+    try {
+      const guides = await storage.getUsageGuides();
+      return res.json({ success: true, guides });
+    } catch (error) {
+      console.error("Admin get usage guides error:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "이용 가이드를 불러오는 중 오류가 발생했습니다." });
+    }
+  });
+
+  // Admin: Create usage guide
+  app.post("/api/admin/usage-guides", async (req, res) => {
+    try {
+      const { title, content, order, isActive, adminId } = req.body;
+
+      if (!title || !content || !adminId) {
+        return res
+          .status(400)
+          .json({ success: false, message: "필수 정보가 누락되었습니다." });
+      }
+
+      const guide = await storage.createUsageGuide({
+        title,
+        content,
+        order: order ?? 0,
+        isActive: isActive ?? true,
+        adminId,
+      });
+
+      return res.json({ success: true, guide });
+    } catch (error) {
+      console.error("Create usage guide error:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "이용 가이드 생성 중 오류가 발생했습니다." });
+    }
+  });
+
+  // Admin: Update usage guide
+  app.put("/api/admin/usage-guides/:id", async (req, res) => {
+    try {
+      const { title, content, order, isActive } = req.body;
+
+      const updated = await storage.updateUsageGuide(req.params.id, {
+        title,
+        content,
+        order,
+        isActive,
+      });
+
+      if (!updated) {
+        return res
+          .status(404)
+          .json({ success: false, message: "이용 가이드를 찾을 수 없습니다." });
+      }
+
+      return res.json({ success: true, guide: updated });
+    } catch (error) {
+      console.error("Update usage guide error:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "이용 가이드 수정 중 오류가 발생했습니다." });
+    }
+  });
+
+  // Admin: Delete usage guide
+  app.delete("/api/admin/usage-guides/:id", async (req, res) => {
+    try {
+      await storage.deleteUsageGuide(req.params.id);
+      return res.json({ success: true, message: "이용 가이드가 삭제되었습니다." });
+    } catch (error) {
+      console.error("Delete usage guide error:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "이용 가이드 삭제 중 오류가 발생했습니다." });
+    }
+  });
+
   // Reset all data (admin only - for development/testing)
   // Admin login page
   app.get("/admin", (req, res) => {

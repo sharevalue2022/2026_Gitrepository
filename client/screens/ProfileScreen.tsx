@@ -495,6 +495,21 @@ export default function ProfileScreen() {
         </ProfileSection>
       </Animated.View>
 
+      <Animated.View entering={FadeInUp.delay(450).duration(500)}>
+        <ProfileSection title="정보">
+          <ProfileRow
+            icon="bell"
+            label="공지사항"
+            onPress={() => navigation.navigate("Announcements")}
+          />
+          <ProfileRow
+            icon="book-open"
+            label="이용 가이드"
+            onPress={() => navigation.navigate("UsageGuides")}
+          />
+        </ProfileSection>
+      </Animated.View>
+
       <Animated.View entering={FadeInUp.delay(500).duration(500)}>
         <ProfileSection title="">
           <ProfileRow

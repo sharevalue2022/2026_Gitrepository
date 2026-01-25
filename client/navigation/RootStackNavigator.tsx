@@ -7,6 +7,10 @@ import UserProfileScreen from "@/screens/UserProfileScreen";
 import ChatScreen from "@/screens/ChatScreen";
 import EditProfileScreen from "@/screens/EditProfileScreen";
 import PhoneVerificationScreen from "@/screens/PhoneVerificationScreen";
+import AnnouncementsScreen from "@/screens/AnnouncementsScreen";
+import AnnouncementDetailScreen from "@/screens/AnnouncementDetailScreen";
+import UsageGuidesScreen from "@/screens/UsageGuidesScreen";
+import UsageGuideDetailScreen from "@/screens/UsageGuideDetailScreen";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
 import { useAuth } from "@/context/AuthContext";
 import { UserProfile } from "@/types";
@@ -18,6 +22,26 @@ export type RootStackParamList = {
   Chat: { conversationId: string; participantName: string };
   EditProfile: undefined;
   PhoneVerification: { fromProfile?: boolean };
+  Announcements: undefined;
+  AnnouncementDetail: {
+    announcement: {
+      id: string;
+      title: string;
+      content: string;
+      category: string;
+      createdAt: string;
+    };
+  };
+  UsageGuides: undefined;
+  UsageGuideDetail: {
+    guide: {
+      id: string;
+      title: string;
+      content: string;
+      order: number;
+      createdAt: string;
+    };
+  };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -71,6 +95,34 @@ export default function RootStackNavigator() {
             component={PhoneVerificationScreen}
             options={{
               headerTitle: "휴대폰 인증",
+            }}
+          />
+          <Stack.Screen
+            name="Announcements"
+            component={AnnouncementsScreen}
+            options={{
+              headerTitle: "공지사항",
+            }}
+          />
+          <Stack.Screen
+            name="AnnouncementDetail"
+            component={AnnouncementDetailScreen}
+            options={{
+              headerTitle: "공지사항",
+            }}
+          />
+          <Stack.Screen
+            name="UsageGuides"
+            component={UsageGuidesScreen}
+            options={{
+              headerTitle: "이용 가이드",
+            }}
+          />
+          <Stack.Screen
+            name="UsageGuideDetail"
+            component={UsageGuideDetailScreen}
+            options={{
+              headerTitle: "이용 가이드",
             }}
           />
         </>

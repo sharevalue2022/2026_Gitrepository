@@ -7,6 +7,8 @@ import {
   blocks,
   csMemos,
   adminActionLogs,
+  announcements,
+  usageGuides,
   type User,
   type InsertUser,
   type Conversation,
@@ -23,6 +25,10 @@ import {
   type InsertCsMemo,
   type AdminActionLog,
   type InsertAdminActionLog,
+  type Announcement,
+  type InsertAnnouncement,
+  type UsageGuide,
+  type InsertUsageGuide,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, or, and, desc, ne, sql } from "drizzle-orm";
@@ -111,6 +117,28 @@ export interface IStorage {
   createAdminActionLog(log: InsertAdminActionLog): Promise<AdminActionLog>;
   getAdminActionLogs(limit?: number): Promise<AdminActionLog[]>;
   getAdminActionLogsByUser(targetUserId: string): Promise<AdminActionLog[]>;
+
+  // Announcements (공지사항)
+  createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement>;
+  getAnnouncements(): Promise<Announcement[]>;
+  getActiveAnnouncements(): Promise<Announcement[]>;
+  getAnnouncement(id: string): Promise<Announcement | undefined>;
+  updateAnnouncement(
+    id: string,
+    data: Partial<InsertAnnouncement>,
+  ): Promise<Announcement | undefined>;
+  deleteAnnouncement(id: string): Promise<void>;
+
+  // Usage Guides (이용 가이드)
+  createUsageGuide(guide: InsertUsageGuide): Promise<UsageGuide>;
+  getUsageGuides(): Promise<UsageGuide[]>;
+  getActiveUsageGuides(): Promise<UsageGuide[]>;
+  getUsageGuide(id: string): Promise<UsageGuide | undefined>;
+  updateUsageGuide(
+    id: string,
+    data: Partial<InsertUsageGuide>,
+  ): Promise<UsageGuide | undefined>;
+  deleteUsageGuide(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -746,6 +774,104 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(adminActionLogs.createdAt));
     return logs;
   }
+
+  // Announcements implementation
+  async createAnnouncement(
+    insertAnnouncement: InsertAnnouncement,
+  ): Promise<Announcement> {
+    const [announcement] = await db
+      .insert(announcements)
+      .values(insertAnnouncement)
+      .returning();
+    return announcement;
+  }
+
+  async getAnnouncements(): Promise<Announcement[]> {
+    return await db
+      .select()
+      .from(announcements)
+      .orderBy(desc(announcements.createdAt));
+  }
+
+  async getActiveAnnouncements(): Promise<Announcement[]> {
+    return await db
+      .select()
+      .from(announcements)
+      .where(eq(announcements.isActive, true))
+      .orderBy(desc(announcements.createdAt));
+  }
+
+  async getAnnouncement(id: string): Promise<Announcement | undefined> {
+    const [announcement] = await db
+      .select()
+      .from(announcements)
+      .where(eq(announcements.id, id));
+    return announcement || undefined;
+  }
+
+  async updateAnnouncement(
+    id: string,
+    data: Partial<InsertAnnouncement>,
+  ): Promise<Announcement | undefined> {
+    const [updated] = await db
+      .update(announcements)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(announcements.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteAnnouncement(id: string): Promise<void> {
+    await db.delete(announcements).where(eq(announcements.id, id));
+  }
+
+  // Usage Guides implementation
+  async createUsageGuide(insertGuide: InsertUsageGuide): Promise<UsageGuide> {
+    const [guide] = await db
+      .insert(usageGuides)
+      .values(insertGuide)
+      .returning();
+    return guide;
+  }
+
+  async getUsageGuides(): Promise<UsageGuide[]> {
+    return await db
+      .select()
+      .from(usageGuides)
+      .orderBy(usageGuides.order);
+  }
+
+  async getActiveUsageGuides(): Promise<UsageGuide[]> {
+    return await db
+      .select()
+      .from(usageGuides)
+      .where(eq(usageGuides.isActive, true))
+      .orderBy(usageGuides.order);
+  }
+
+  async getUsageGuide(id: string): Promise<UsageGuide | undefined> {
+    const [guide] = await db
+      .select()
+      .from(usageGuides)
+      .where(eq(usageGuides.id, id));
+    return guide || undefined;
+  }
+
+  async updateUsageGuide(
+    id: string,
+    data: Partial<InsertUsageGuide>,
+  ): Promise<UsageGuide | undefined> {
+    const [updated] = await db
+      .update(usageGuides)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(usageGuides.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteUsageGuide(id: string): Promise<void> {
+    await db.delete(usageGuides).where(eq(usageGuides.id, id));
+  }
 }
 
 // In-memory storage implementation (for when DATABASE_URL is not set)
@@ -758,6 +884,8 @@ class InMemoryStorage implements IStorage {
   private blocks: Map<string, Block> = new Map();
   private csMemos: Map<string, CsMemo> = new Map();
   private adminActionLogs: Map<string, AdminActionLog> = new Map();
+  private announcements: Map<string, Announcement> = new Map();
+  private usageGuides: Map<string, UsageGuide> = new Map();
 
   async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
@@ -1309,6 +1437,120 @@ class InMemoryStorage implements IStorage {
           (a.createdAt || new Date()).getTime(),
       );
     return logs;
+  }
+
+  // Announcements implementation
+  async createAnnouncement(
+    insertAnnouncement: InsertAnnouncement,
+  ): Promise<Announcement> {
+    const id = crypto.randomUUID();
+    const now = new Date();
+    const announcement: Announcement = {
+      id,
+      title: insertAnnouncement.title,
+      content: insertAnnouncement.content,
+      category: insertAnnouncement.category,
+      isActive: insertAnnouncement.isActive ?? true,
+      adminId: insertAnnouncement.adminId,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.announcements.set(id, announcement);
+    return announcement;
+  }
+
+  async getAnnouncements(): Promise<Announcement[]> {
+    return Array.from(this.announcements.values()).sort(
+      (a, b) =>
+        (b.createdAt || new Date()).getTime() -
+        (a.createdAt || new Date()).getTime(),
+    );
+  }
+
+  async getActiveAnnouncements(): Promise<Announcement[]> {
+    return Array.from(this.announcements.values())
+      .filter((a) => a.isActive)
+      .sort(
+        (a, b) =>
+          (b.createdAt || new Date()).getTime() -
+          (a.createdAt || new Date()).getTime(),
+      );
+  }
+
+  async getAnnouncement(id: string): Promise<Announcement | undefined> {
+    return this.announcements.get(id);
+  }
+
+  async updateAnnouncement(
+    id: string,
+    data: Partial<InsertAnnouncement>,
+  ): Promise<Announcement | undefined> {
+    const existing = this.announcements.get(id);
+    if (!existing) return undefined;
+
+    const updated: Announcement = {
+      ...existing,
+      ...data,
+      updatedAt: new Date(),
+    };
+    this.announcements.set(id, updated);
+    return updated;
+  }
+
+  async deleteAnnouncement(id: string): Promise<void> {
+    this.announcements.delete(id);
+  }
+
+  // Usage Guides implementation
+  async createUsageGuide(insertGuide: InsertUsageGuide): Promise<UsageGuide> {
+    const id = crypto.randomUUID();
+    const now = new Date();
+    const guide: UsageGuide = {
+      id,
+      title: insertGuide.title,
+      content: insertGuide.content,
+      order: insertGuide.order ?? 0,
+      isActive: insertGuide.isActive ?? true,
+      adminId: insertGuide.adminId,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.usageGuides.set(id, guide);
+    return guide;
+  }
+
+  async getUsageGuides(): Promise<UsageGuide[]> {
+    return Array.from(this.usageGuides.values()).sort((a, b) => a.order - b.order);
+  }
+
+  async getActiveUsageGuides(): Promise<UsageGuide[]> {
+    return Array.from(this.usageGuides.values())
+      .filter((g) => g.isActive)
+      .sort((a, b) => a.order - b.order);
+  }
+
+  async getUsageGuide(id: string): Promise<UsageGuide | undefined> {
+    return this.usageGuides.get(id);
+  }
+
+  async updateUsageGuide(
+    id: string,
+    data: Partial<InsertUsageGuide>,
+  ): Promise<UsageGuide | undefined> {
+    const existing = this.usageGuides.get(id);
+    if (!existing) return undefined;
+
+    const updated: UsageGuide = {
+      ...existing,
+      ...data,
+      updatedAt: new Date(),
+    };
+    this.usageGuides.set(id, updated);
+    return updated;
+  }
+
+  async deleteUsageGuide(id: string): Promise<void> {
+    this.usageGuides.delete(id);
   }
 
   // Reset all data (for testing/development)
