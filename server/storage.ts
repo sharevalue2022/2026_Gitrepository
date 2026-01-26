@@ -139,6 +139,18 @@ export interface IStorage {
     data: Partial<InsertUsageGuide>,
   ): Promise<UsageGuide | undefined>;
   deleteUsageGuide(id: string): Promise<void>;
+
+  // Photo Approval (사진 승인)
+  getPendingPhotos(): Promise<
+    {
+      userId: string;
+      userName: string;
+      gender: string;
+      photos: { url: string; approved: boolean }[];
+    }[]
+  >;
+  approveUserPhoto(userId: string, photoUrl: string): Promise<boolean>;
+  rejectUserPhoto(userId: string, photoUrl: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -446,7 +458,8 @@ export class DatabaseStorage implements IStorage {
           .select()
           .from(users)
           .where(eq(users.id, req.userId));
-        return { ...req, user: user! };
+        // Include request even if user is not found (UI handles missing user)
+        return { ...req, user: user as User };
       }),
     );
 
@@ -468,7 +481,8 @@ export class DatabaseStorage implements IStorage {
           .select()
           .from(users)
           .where(eq(users.id, req.userId));
-        return { ...req, user: user! };
+        // Include request even if user is not found (UI handles missing user)
+        return { ...req, user: user as User };
       }),
     );
 
@@ -872,6 +886,64 @@ export class DatabaseStorage implements IStorage {
   async deleteUsageGuide(id: string): Promise<void> {
     await db.delete(usageGuides).where(eq(usageGuides.id, id));
   }
+
+  // Photo Approval implementation
+  async getPendingPhotos(): Promise<
+    {
+      userId: string;
+      userName: string;
+      gender: string;
+      photos: { url: string; approved: boolean }[];
+    }[]
+  > {
+    const allUsers = await db.select().from(users);
+    const usersWithPendingPhotos = allUsers
+      .filter((user) => {
+        const photos = (user.photos as { url: string; approved: boolean }[]) || [];
+        return photos.some((p) => !p.approved);
+      })
+      .map((user) => ({
+        userId: user.id,
+        userName: user.name,
+        gender: user.gender,
+        photos: ((user.photos as { url: string; approved: boolean }[]) || []).filter(
+          (p) => !p.approved,
+        ),
+      }));
+    return usersWithPendingPhotos;
+  }
+
+  async approveUserPhoto(userId: string, photoUrl: string): Promise<boolean> {
+    const user = await this.getUser(userId);
+    if (!user) return false;
+
+    const photos = (user.photos as { url: string; approved: boolean }[]) || [];
+    const updatedPhotos = photos.map((p) =>
+      p.url === photoUrl ? { ...p, approved: true } : p,
+    );
+
+    await db
+      .update(users)
+      .set({ photos: updatedPhotos })
+      .where(eq(users.id, userId));
+
+    return true;
+  }
+
+  async rejectUserPhoto(userId: string, photoUrl: string): Promise<boolean> {
+    const user = await this.getUser(userId);
+    if (!user) return false;
+
+    const photos = (user.photos as { url: string; approved: boolean }[]) || [];
+    const updatedPhotos = photos.filter((p) => p.url !== photoUrl);
+
+    await db
+      .update(users)
+      .set({ photos: updatedPhotos })
+      .where(eq(users.id, userId));
+
+    return true;
+  }
 }
 
 // In-memory storage implementation (for when DATABASE_URL is not set)
@@ -1116,8 +1188,8 @@ class InMemoryStorage implements IStorage {
     const result = [];
     for (const req of this.paymentRequests.values()) {
       const user = await this.getUser(req.userId);
-      if (!user) continue;
-      result.push({ ...req, user });
+      // Include request even if user is not found (UI handles missing user)
+      result.push({ ...req, user: user as User });
     }
     return result.sort(
       (a, b) =>
@@ -1551,6 +1623,56 @@ class InMemoryStorage implements IStorage {
 
   async deleteUsageGuide(id: string): Promise<void> {
     this.usageGuides.delete(id);
+  }
+
+  // Photo Approval implementation
+  async getPendingPhotos(): Promise<
+    {
+      userId: string;
+      userName: string;
+      gender: string;
+      photos: { url: string; approved: boolean }[];
+    }[]
+  > {
+    const allUsers = Array.from(this.users.values());
+    const usersWithPendingPhotos = allUsers
+      .filter((user) => {
+        const photos = (user.photos as { url: string; approved: boolean }[]) || [];
+        return photos.some((p) => !p.approved);
+      })
+      .map((user) => ({
+        userId: user.id,
+        userName: user.name,
+        gender: user.gender,
+        photos: ((user.photos as { url: string; approved: boolean }[]) || []).filter(
+          (p) => !p.approved,
+        ),
+      }));
+    return usersWithPendingPhotos;
+  }
+
+  async approveUserPhoto(userId: string, photoUrl: string): Promise<boolean> {
+    const user = this.users.get(userId);
+    if (!user) return false;
+
+    const photos = (user.photos as { url: string; approved: boolean }[]) || [];
+    const updatedPhotos = photos.map((p) =>
+      p.url === photoUrl ? { ...p, approved: true } : p,
+    );
+
+    this.users.set(userId, { ...user, photos: updatedPhotos });
+    return true;
+  }
+
+  async rejectUserPhoto(userId: string, photoUrl: string): Promise<boolean> {
+    const user = this.users.get(userId);
+    if (!user) return false;
+
+    const photos = (user.photos as { url: string; approved: boolean }[]) || [];
+    const updatedPhotos = photos.filter((p) => p.url !== photoUrl);
+
+    this.users.set(userId, { ...user, photos: updatedPhotos });
+    return true;
   }
 
   // Reset all data (for testing/development)

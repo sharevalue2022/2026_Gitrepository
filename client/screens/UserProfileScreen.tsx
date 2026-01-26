@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -42,11 +42,16 @@ export default function UserProfileScreen() {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user: selectedUser } = route.params;
   const { theme, isDark } = useTheme();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, refreshUser } = useAuth();
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
+
+  // Refresh user data when screen loads to get latest membership status
+  useEffect(() => {
+    refreshUser();
+  }, []);
 
   const approvedPhotos = selectedUser.photos?.filter((p) => p.approved) || [];
   const hasPhotos = approvedPhotos.length > 0;

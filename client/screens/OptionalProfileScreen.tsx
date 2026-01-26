@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { StyleSheet, View, Pressable, Image, ScrollView } from "react-native";
+import { StyleSheet, View, Pressable, Image, ScrollView, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp } from "@react-navigation/native";
@@ -17,6 +17,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Spacing, BorderRadius, AppColors } from "@/constants/theme";
 import { Gender, UserProfile } from "@/types";
 import { AuthStackParamList } from "@/navigation/AuthStackNavigator";
+import { uploadPhoto } from "@/lib/uploadPhoto";
 
 type OptionalProfileScreenProps = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "OptionalProfile">;
@@ -70,6 +71,7 @@ export default function OptionalProfileScreen({
   const [maritalStatus, setMaritalStatus] = useState("");
   const [bodyType, setBodyType] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Calculate profile completeness progress
   const calculateProgress = () => {
@@ -99,6 +101,8 @@ export default function OptionalProfileScreen({
   };
 
   const pickImage = async () => {
+    console.log("[pickImage] Function called");
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
@@ -106,8 +110,21 @@ export default function OptionalProfileScreen({
       quality: 0.8,
     });
 
+    console.log("[pickImage] ImagePicker result:", JSON.stringify(result, null, 2));
+
     if (!result.canceled && result.assets[0]) {
-      setPhotos((prev) => [...prev, result.assets[0].uri].slice(0, 5));
+      console.log("[pickImage] Selected URI:", result.assets[0].uri);
+      setIsUploading(true);
+      try {
+        const httpUrl = await uploadPhoto(result.assets[0].uri);
+        console.log("[pickImage] Upload success:", httpUrl);
+        setPhotos((prev) => [...prev, httpUrl].slice(0, 5));
+      } catch (error) {
+        console.error("[pickImage] Upload error:", error);
+        Alert.alert("오류", "사진 업로드에 실패했습니다. 다시 시도해주세요.");
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -339,15 +356,23 @@ export default function OptionalProfileScreen({
           {photos.length < 5 ? (
             <Pressable
               onPress={pickImage}
+              disabled={isUploading}
               style={[
                 styles.addPhoto,
                 {
                   backgroundColor: theme.backgroundDefault,
                   borderColor: theme.border,
+                  opacity: isUploading ? 0.5 : 1,
                 },
               ]}
             >
-              <Feather name="plus" size={24} color={theme.textSecondary} />
+              {isUploading ? (
+                <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                  업로드중...
+                </ThemedText>
+              ) : (
+                <Feather name="plus" size={24} color={theme.textSecondary} />
+              )}
             </Pressable>
           ) : null}
         </ScrollView>
@@ -416,15 +441,15 @@ export default function OptionalProfileScreen({
       <Button
         onPress={handleComplete}
         style={styles.button}
-        disabled={isLoading}
+        disabled={isLoading || isUploading}
       >
-        완료
+        {isUploading ? "사진 업로드 중..." : "완료"}
       </Button>
 
       <Pressable
         onPress={handleSkip}
         style={styles.skipButton}
-        disabled={isLoading}
+        disabled={isLoading || isUploading}
       >
         <ThemedText
           type="body"

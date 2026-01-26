@@ -41,8 +41,12 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const avatarSource =
-    user?.gender === "female"
+  const approvedPhotos = user?.photos?.filter((p) => p.approved) || [];
+  const hasApprovedPhoto = approvedPhotos.length > 0;
+
+  const avatarSource = hasApprovedPhoto
+    ? { uri: approvedPhotos[0].url }
+    : user?.gender === "female"
       ? require("../../assets/images/default-avatar-female.png")
       : require("../../assets/images/default-avatar-male.png");
 
@@ -488,9 +492,13 @@ export default function ProfileScreen() {
           <ProfileRow
             icon="shield"
             label="개인정보 및 보안"
-            onPress={() => {}}
+            onPress={() => navigation.navigate("PrivacySecurity")}
           />
-          <ProfileRow icon="bell" label="알림 설정" onPress={() => {}} />
+          <ProfileRow
+            icon="file-text"
+            label="이용약관"
+            onPress={() => navigation.navigate("TermsOfService")}
+          />
           <ProfileRow icon="help-circle" label="도움말" onPress={() => {}} />
         </ProfileSection>
       </Animated.View>

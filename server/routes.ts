@@ -4,7 +4,36 @@ import { sendVerificationSMS } from "./lib/twilio";
 import { storage } from "./storage";
 import * as fs from "fs";
 import * as path from "path";
+import * as crypto from "crypto";
 import bcrypt from "bcryptjs";
+import multer from "multer";
+
+// Configure multer for photo uploads
+const uploadsDir = path.resolve(process.cwd(), "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const photoStorage = multer.diskStorage({
+  destination: uploadsDir,
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname) || ".jpg";
+    cb(null, `photo_${crypto.randomUUID()}${ext}`);
+  },
+});
+
+const upload = multer({
+  storage: photoStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed"));
+    }
+  },
+});
 
 const verificationCodes = new Map<
   string,
@@ -191,8 +220,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ success: false, message: "비밀번호가 일치하지 않습니다." });
       }
 
+      // Calculate kingMembershipExpiry if user is a king member
+      let kingMembershipExpiry: string | undefined;
+      if (user.isKingMember && user.kingMembershipStartDate) {
+        const expiryDate = new Date(user.kingMembershipStartDate);
+        expiryDate.setDate(expiryDate.getDate() + 30);
+        kingMembershipExpiry = expiryDate.toISOString();
+      }
+
       const { passwordHash: _, ...userWithoutPassword } = user;
-      return res.json({ success: true, user: userWithoutPassword });
+      return res.json({
+        success: true,
+        user: {
+          ...userWithoutPassword,
+          kingMembershipExpiry,
+        },
+      });
     } catch (error) {
       console.error("Login error:", error);
       return res
@@ -235,7 +278,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .status(404)
           .json({ success: false, message: "사용자를 찾을 수 없습니다." });
       }
-      return res.json({ success: true, user });
+
+      // Calculate kingMembershipExpiry if user is a king member
+      let kingMembershipExpiry: string | undefined;
+      if (user.isKingMember && user.kingMembershipStartDate) {
+        const expiryDate = new Date(user.kingMembershipStartDate);
+        expiryDate.setDate(expiryDate.getDate() + 30);
+        kingMembershipExpiry = expiryDate.toISOString();
+      }
+
+      return res.json({
+        success: true,
+        user: {
+          ...user,
+          kingMembershipExpiry,
+        },
+      });
     } catch (error) {
       console.error("Get user error:", error);
       return res
@@ -342,6 +400,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res
         .status(500)
         .json({ success: false, message: "서버 오류가 발생했습니다." });
+    }
+  });
+
+  // Photo upload endpoint (multipart/form-data)
+  app.post("/api/upload/photo", upload.single("photo"), (req, res) => {
+    try {
+      if (!req.file) {
+        return res
+          .status(400)
+          .json({ success: false, message: "사진 파일이 필요합니다." });
+      }
+
+      const protocol = req.header("x-forwarded-proto") || req.protocol || "http";
+      const host = req.header("x-forwarded-host") || req.get("host");
+      const url = `${protocol}://${host}/uploads/${req.file.filename}`;
+
+      console.log(`[Photo Upload] File saved: ${req.file.filename}, URL: ${url}`);
+
+      return res.json({ success: true, url });
+    } catch (error) {
+      console.error("Photo upload error:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "사진 업로드 중 오류가 발생했습니다." });
+    }
+  });
+
+  // Photo upload endpoint (base64) - More reliable for React Native
+  app.post("/api/upload/photo-base64", async (req, res) => {
+    try {
+      const { base64, mimeType, fileName } = req.body;
+
+      if (!base64) {
+        return res
+          .status(400)
+          .json({ success: false, message: "base64 데이터가 필요합니다." });
+      }
+
+      // Remove data URL prefix if present
+      const base64Data = base64.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(base64Data, "base64");
+
+      // Determine extension from mimeType
+      let ext = ".jpg";
+      if (mimeType === "image/png") ext = ".png";
+      else if (mimeType === "image/gif") ext = ".gif";
+      else if (mimeType === "image/webp") ext = ".webp";
+
+      const finalFileName = `photo_${crypto.randomUUID()}${ext}`;
+      const filePath = path.join(uploadsDir, finalFileName);
+
+      fs.writeFileSync(filePath, buffer);
+
+      const protocol = req.header("x-forwarded-proto") || req.protocol || "http";
+      const host = req.header("x-forwarded-host") || req.get("host");
+      const url = `${protocol}://${host}/uploads/${finalFileName}`;
+
+      console.log(`[Photo Upload Base64] File saved: ${finalFileName}, URL: ${url}`);
+
+      return res.json({ success: true, url });
+    } catch (error) {
+      console.error("Photo upload base64 error:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "사진 업로드 중 오류가 발생했습니다." });
     }
   });
 
@@ -1507,6 +1630,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
           success: false,
           message: "관리자 행동 로그 생성 중 오류가 발생했습니다.",
         });
+    }
+  });
+
+  // ============ Admin: Photo Approval (사진 승인) ============
+
+  // Get all users with unapproved photos
+  app.get("/api/admin/pending-photos", async (req, res) => {
+    try {
+      const pendingPhotos = await storage.getPendingPhotos();
+      return res.json({ success: true, users: pendingPhotos });
+    } catch (error) {
+      console.error("Get pending photos error:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "사진 목록을 불러오는 중 오류가 발생했습니다." });
+    }
+  });
+
+  // Approve a user's photo
+  app.post("/api/admin/photos/:userId/approve", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { photoUrl, adminId } = req.body;
+
+      if (!photoUrl) {
+        return res
+          .status(400)
+          .json({ success: false, message: "사진 URL이 필요합니다." });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res
+          .status(404)
+          .json({ success: false, message: "사용자를 찾을 수 없습니다." });
+      }
+
+      const success = await storage.approveUserPhoto(userId, photoUrl);
+      if (!success) {
+        return res
+          .status(500)
+          .json({ success: false, message: "사진 승인 처리 중 오류가 발생했습니다." });
+      }
+
+      // Log admin action
+      await storage.createAdminActionLog({
+        adminId: adminId || "admin",
+        action: "photo_approve",
+        targetUserId: userId,
+        targetUserName: user.name,
+        details: `사진 승인: ${photoUrl.substring(0, 50)}...`,
+      });
+
+      return res.json({ success: true, message: "사진이 승인되었습니다." });
+    } catch (error) {
+      console.error("Approve photo error:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "사진 승인 처리 중 오류가 발생했습니다." });
+    }
+  });
+
+  // Reject (delete) a user's photo
+  app.post("/api/admin/photos/:userId/reject", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { photoUrl, adminId } = req.body;
+
+      if (!photoUrl) {
+        return res
+          .status(400)
+          .json({ success: false, message: "사진 URL이 필요합니다." });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res
+          .status(404)
+          .json({ success: false, message: "사용자를 찾을 수 없습니다." });
+      }
+
+      const success = await storage.rejectUserPhoto(userId, photoUrl);
+      if (!success) {
+        return res
+          .status(500)
+          .json({ success: false, message: "사진 거절 처리 중 오류가 발생했습니다." });
+      }
+
+      // Log admin action
+      await storage.createAdminActionLog({
+        adminId: adminId || "admin",
+        action: "photo_reject",
+        targetUserId: userId,
+        targetUserName: user.name,
+        details: `사진 거절 (삭제): ${photoUrl.substring(0, 50)}...`,
+      });
+
+      return res.json({ success: true, message: "사진이 거절되었습니다." });
+    } catch (error) {
+      console.error("Reject photo error:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "사진 거절 처리 중 오류가 발생했습니다." });
     }
   });
 

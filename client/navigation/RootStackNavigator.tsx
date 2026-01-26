@@ -11,6 +11,8 @@ import AnnouncementsScreen from "@/screens/AnnouncementsScreen";
 import AnnouncementDetailScreen from "@/screens/AnnouncementDetailScreen";
 import UsageGuidesScreen from "@/screens/UsageGuidesScreen";
 import UsageGuideDetailScreen from "@/screens/UsageGuideDetailScreen";
+import PrivacySecurityScreen from "@/screens/PrivacySecurityScreen";
+import TermsOfServiceScreen from "@/screens/TermsOfServiceScreen";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
 import { useAuth } from "@/context/AuthContext";
 import { UserProfile } from "@/types";
@@ -42,6 +44,8 @@ export type RootStackParamList = {
       createdAt: string;
     };
   };
+  PrivacySecurity: undefined;
+  TermsOfService: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -123,6 +127,20 @@ export default function RootStackNavigator() {
             component={UsageGuideDetailScreen}
             options={{
               headerTitle: "이용 가이드",
+            }}
+          />
+          <Stack.Screen
+            name="PrivacySecurity"
+            component={PrivacySecurityScreen}
+            options={{
+              headerTitle: "개인정보 및 보안",
+            }}
+          />
+          <Stack.Screen
+            name="TermsOfService"
+            component={TermsOfServiceScreen}
+            options={{
+              headerTitle: "이용약관",
             }}
           />
         </>

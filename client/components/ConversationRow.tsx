@@ -47,8 +47,9 @@ export function ConversationRow({
     onPress();
   };
 
-  const avatarSource =
-    conversation.participantGender === "female"
+  const avatarSource = conversation.participantPhoto
+    ? { uri: conversation.participantPhoto }
+    : conversation.participantGender === "female"
       ? require("../../assets/images/default-avatar-female.png")
       : require("../../assets/images/default-avatar-male.png");
 

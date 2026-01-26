@@ -21,6 +21,7 @@ import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollV
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/context/AuthContext";
 import { Spacing, BorderRadius, AppColors } from "@/constants/theme";
+import { uploadPhoto } from "@/lib/uploadPhoto";
 import type { UserPhoto } from "@/types";
 
 const HOBBIES = [
@@ -87,7 +88,11 @@ export default function EditProfileScreen() {
     );
   };
 
+  const [isUploading, setIsUploading] = useState(false);
+
   const pickImage = async () => {
+    console.log("[pickImage] Function called");
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
@@ -95,10 +100,24 @@ export default function EditProfileScreen() {
       quality: 0.8,
     });
 
+    console.log("[pickImage] ImagePicker result:", JSON.stringify(result, null, 2));
+
     if (!result.canceled && result.assets[0]) {
-      setPhotos((prev) =>
-        [...prev, { url: result.assets[0].uri, approved: false }].slice(0, 5),
-      );
+      console.log("[pickImage] Selected URI:", result.assets[0].uri);
+      setIsUploading(true);
+      try {
+        // Upload to server and get HTTP URL
+        const httpUrl = await uploadPhoto(result.assets[0].uri);
+        console.log("[pickImage] Upload success:", httpUrl);
+        setPhotos((prev) =>
+          [...prev, { url: httpUrl, approved: false }].slice(0, 5),
+        );
+      } catch (error) {
+        console.error("[pickImage] Upload error:", error);
+        Alert.alert("오류", "사진 업로드에 실패했습니다. 다시 시도해주세요.");
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -170,15 +189,23 @@ export default function EditProfileScreen() {
           {photos.length < 5 ? (
             <Pressable
               onPress={pickImage}
+              disabled={isUploading}
               style={[
                 styles.addPhoto,
                 {
                   backgroundColor: theme.backgroundDefault,
                   borderColor: theme.border,
+                  opacity: isUploading ? 0.5 : 1,
                 },
               ]}
             >
-              <Feather name="plus" size={24} color={theme.textSecondary} />
+              {isUploading ? (
+                <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                  업로드중...
+                </ThemedText>
+              ) : (
+                <Feather name="plus" size={24} color={theme.textSecondary} />
+              )}
             </Pressable>
           ) : null}
         </ScrollView>
@@ -299,7 +326,7 @@ export default function EditProfileScreen() {
         </View>
       </View>
 
-      <Button onPress={handleSave} disabled={isSaving} style={styles.button}>
+      <Button onPress={handleSave} disabled={isSaving || isUploading} style={styles.button}>
         {isSaving ? "저장 중..." : "저장"}
       </Button>
     </KeyboardAwareScrollViewCompat>

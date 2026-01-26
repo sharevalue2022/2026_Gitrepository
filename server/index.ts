@@ -56,13 +56,14 @@ function setupCors(app: express.Application) {
 function setupBodyParsing(app: express.Application) {
   app.use(
     express.json({
+      limit: "50mb", // Allow large base64 image uploads
       verify: (req, _res, buf) => {
         req.rawBody = buf;
       },
     }),
   );
 
-  app.use(express.urlencoded({ extended: false }));
+  app.use(express.urlencoded({ extended: false, limit: "50mb" }));
 }
 
 function setupRequestLogging(app: express.Application) {
@@ -170,6 +171,15 @@ function configureExpoAndLanding(app: express.Application) {
   );
   const landingPageTemplate = fs.readFileSync(templatePath, "utf-8");
   const appName = getAppName();
+
+  // Ensure uploads directory exists
+  const uploadsDir = path.resolve(process.cwd(), "uploads");
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+
+  // Serve uploaded files
+  app.use('/uploads', express.static(uploadsDir));
 
   log("Serving static Expo files with dynamic manifest routing");
 

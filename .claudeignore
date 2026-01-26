@@ -1,0 +1,27 @@
+# 의존성 파일
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# 빌드 산출물
+dist/
+build/
+.next/
+out/
+
+# 로그 및 임시 파일
+*.log
+logs/
+.cache/
+tmp/
+
+# 환경 변수 (보안상으로도 중요)
+.env
+.env.local
+
+# 대용량 데이터
+*.csv
+*.json (특정 데이터 파일만)
+data/
+uploads/

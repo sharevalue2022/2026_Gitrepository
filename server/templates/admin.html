@@ -662,6 +662,98 @@
         font-size: 11px;
         border-radius: 4px;
       }
+      /* Photo Approval Styles */
+      .photo-user-card {
+        background: #FFFFFF;
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+      }
+      .photo-user-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #E5E7EB;
+      }
+      .photo-user-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        color: #fff;
+        font-size: 18px;
+      }
+      .photo-user-avatar.male {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+      .photo-user-avatar.female {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      }
+      .photo-user-details h3 {
+        font-size: 16px;
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 4px;
+      }
+      .photo-user-details p {
+        font-size: 13px;
+        color: #6B7280;
+      }
+      .photo-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 16px;
+      }
+      .photo-card {
+        position: relative;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #F3F4F6;
+        aspect-ratio: 1;
+      }
+      .photo-card img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+      .photo-card img:hover {
+        transform: scale(1.05);
+      }
+      .photo-card-actions {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        gap: 0;
+      }
+      .photo-card-actions button {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: opacity 0.2s;
+      }
+      .photo-card-actions button:hover {
+        opacity: 0.9;
+      }
+      .photo-card-actions .btn-approve {
+        border-radius: 0 0 0 8px;
+      }
+      .photo-card-actions .btn-reject {
+        border-radius: 0 0 8px 0;
+      }
     </style>
   </head>
   <body>
@@ -731,6 +823,7 @@
         <button class="tab" data-section="reports" onclick="setSection('reports')">📢 신고 내역</button>
         <button class="tab" data-section="action-logs" onclick="setSection('action-logs')">📋 운영자 행동 로그</button>
         <button class="tab" data-section="cms" onclick="setSection('cms')">📝 콘텐츠 관리</button>
+        <button class="tab" data-section="photos" onclick="setSection('photos')">📸 사진 승인</button>
       </div>
 
       <div id="requests-section">
@@ -842,6 +935,49 @@
       </div>
 
       <!-- CMS Section -->
+      <!-- Photo Approval Section -->
+      <div id="photos-section" style="display: none;">
+        <div class="info-banner" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; padding: 16px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 24px;">📸</span>
+          <div>
+            <div style="font-weight: 600; margin-bottom: 4px;">사진 승인 관리</div>
+            <div style="font-size: 14px; opacity: 0.9;">사용자가 업로드한 사진을 검토하고 승인/거절합니다</div>
+          </div>
+        </div>
+
+        <div class="stats" id="photos-stats">
+          <div class="stat-card">
+            <div class="stat-label">승인 대기 중</div>
+            <div class="stat-value" id="stat-pending-photos">-</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">대기 중인 사용자</div>
+            <div class="stat-value" id="stat-pending-users">-</div>
+          </div>
+        </div>
+
+        <div id="pending-photos-list">
+          <div class="loading">로딩 중...</div>
+        </div>
+      </div>
+
+      <!-- Photo Modal -->
+      <div id="photo-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 800px;">
+          <div class="modal-header">
+            <h3 id="photo-modal-title">사진 상세</h3>
+            <button class="modal-close" onclick="closePhotoModal()">&times;</button>
+          </div>
+          <div style="padding: 20px; text-align: center;">
+            <img id="photo-modal-image" src="" alt="Photo" style="max-width: 100%; max-height: 60vh; border-radius: 8px;" />
+            <div style="margin-top: 16px; display: flex; gap: 12px; justify-content: center;">
+              <button class="btn btn-approve" onclick="handlePhotoApproveFromModal()">✓ 승인</button>
+              <button class="btn btn-reject" onclick="handlePhotoRejectFromModal()">✗ 거절</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div id="cms-section" style="display: none;">
         <div class="info-banner" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 16px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
           <span style="font-size: 24px;">📝</span>
@@ -1234,6 +1370,7 @@
         document.getElementById('reports-section').style.display = section === 'reports' ? 'block' : 'none';
         document.getElementById('action-logs-section').style.display = section === 'action-logs' ? 'block' : 'none';
         document.getElementById('cms-section').style.display = section === 'cms' ? 'block' : 'none';
+        document.getElementById('photos-section').style.display = section === 'photos' ? 'block' : 'none';
 
         if (section === 'risky') {
           loadRiskyUsers();
@@ -1243,6 +1380,8 @@
           loadActionLogs();
         } else if (section === 'cms') {
           loadAnnouncements();
+        } else if (section === 'photos') {
+          loadPendingPhotos();
         }
       }
 
@@ -2553,6 +2692,142 @@
           alert('삭제 중 오류가 발생했습니다.');
         }
       }
+
+      // ============ Photo Approval Functions ============
+
+      let pendingPhotosData = [];
+      let currentPhotoModal = { userId: null, photoUrl: null };
+
+      async function loadPendingPhotos() {
+        try {
+          const response = await fetch('/api/admin/pending-photos');
+          const data = await response.json();
+
+          if (data.success) {
+            pendingPhotosData = data.users;
+            const totalPhotos = data.users.reduce((sum, u) => sum + u.photos.length, 0);
+
+            document.getElementById('stat-pending-photos').textContent = totalPhotos;
+            document.getElementById('stat-pending-users').textContent = data.users.length;
+
+            const container = document.getElementById('pending-photos-list');
+
+            if (data.users.length === 0) {
+              container.innerHTML = '<div class="empty-state"><h3>승인 대기 중인 사진이 없습니다</h3><p>모든 사진이 처리되었습니다.</p></div>';
+              return;
+            }
+
+            container.innerHTML = data.users.map(user => `
+              <div class="photo-user-card">
+                <div class="photo-user-header">
+                  <div class="photo-user-avatar ${user.gender}">${user.userName.charAt(0)}</div>
+                  <div class="photo-user-details">
+                    <h3>${escapeHtml(user.userName)}</h3>
+                    <p>${user.gender === 'male' ? '남성' : '여성'} · 대기 중인 사진 ${user.photos.length}장</p>
+                  </div>
+                </div>
+                <div class="photo-grid">
+                  ${user.photos.map(photo => `
+                    <div class="photo-card">
+                      <img src="${photo.url}" alt="User photo" onclick="openPhotoModal('${user.userId}', '${photo.url}', '${user.userName}')" />
+                      <div class="photo-card-actions">
+                        <button class="btn btn-approve" onclick="handlePhotoApprove('${user.userId}', '${photo.url}')">✓ 승인</button>
+                        <button class="btn btn-reject" onclick="handlePhotoReject('${user.userId}', '${photo.url}')">✗ 거절</button>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            `).join('');
+          }
+        } catch (error) {
+          console.error('Load pending photos error:', error);
+          document.getElementById('pending-photos-list').innerHTML = '<div class="empty-state"><h3>데이터를 불러올 수 없습니다</h3></div>';
+        }
+      }
+
+      function openPhotoModal(userId, photoUrl, userName) {
+        currentPhotoModal = { userId, photoUrl };
+        document.getElementById('photo-modal-title').textContent = `${userName}님의 사진`;
+        document.getElementById('photo-modal-image').src = photoUrl;
+        document.getElementById('photo-modal').style.display = 'flex';
+      }
+
+      function closePhotoModal() {
+        document.getElementById('photo-modal').style.display = 'none';
+        currentPhotoModal = { userId: null, photoUrl: null };
+      }
+
+      async function handlePhotoApprove(userId, photoUrl) {
+        if (!confirm('이 사진을 승인하시겠습니까?')) return;
+
+        try {
+          const response = await fetch(`/api/admin/photos/${userId}/approve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ photoUrl, adminId: 'admin' })
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            alert('사진이 승인되었습니다.');
+            loadPendingPhotos();
+            loadDashboardKPI();
+          } else {
+            alert('사진 승인에 실패했습니다: ' + (data.message || '알 수 없는 오류'));
+          }
+        } catch (error) {
+          console.error('Photo approve error:', error);
+          alert('사진 승인 중 오류가 발생했습니다.');
+        }
+      }
+
+      async function handlePhotoReject(userId, photoUrl) {
+        if (!confirm('이 사진을 거절하시겠습니까? 거절된 사진은 삭제됩니다.')) return;
+
+        try {
+          const response = await fetch(`/api/admin/photos/${userId}/reject`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ photoUrl, adminId: 'admin' })
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            alert('사진이 거절되었습니다.');
+            loadPendingPhotos();
+            loadDashboardKPI();
+          } else {
+            alert('사진 거절에 실패했습니다: ' + (data.message || '알 수 없는 오류'));
+          }
+        } catch (error) {
+          console.error('Photo reject error:', error);
+          alert('사진 거절 중 오류가 발생했습니다.');
+        }
+      }
+
+      function handlePhotoApproveFromModal() {
+        if (currentPhotoModal.userId && currentPhotoModal.photoUrl) {
+          handlePhotoApprove(currentPhotoModal.userId, currentPhotoModal.photoUrl);
+          closePhotoModal();
+        }
+      }
+
+      function handlePhotoRejectFromModal() {
+        if (currentPhotoModal.userId && currentPhotoModal.photoUrl) {
+          handlePhotoReject(currentPhotoModal.userId, currentPhotoModal.photoUrl);
+          closePhotoModal();
+        }
+      }
+
+      // Close modal when clicking outside
+      document.getElementById('photo-modal').addEventListener('click', function(e) {
+        if (e.target === this) {
+          closePhotoModal();
+        }
+      });
 
       loadData();
     </script>

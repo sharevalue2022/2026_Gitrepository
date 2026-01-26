@@ -25,6 +25,7 @@ interface AuthContextType {
   setKingMembership: (isActive: boolean) => Promise<void>;
   setPhoneVerified: (verified: boolean) => Promise<void>;
   completeOnboarding: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -217,6 +218,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await updateUser({ onboardingComplete: true });
   };
 
+  const refreshUser = async () => {
+    if (!user) return;
+
+    const isRealId =
+      user.id && !user.id.startsWith("local_") && !user.id.startsWith("user_");
+    if (!isRealId) return;
+
+    try {
+      const res = await fetch(
+        new URL(`/api/users/${user.id}`, getApiUrl()).href,
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.user) {
+          const refreshedUser = {
+            ...user,
+            ...data.user,
+            onboardingComplete: user.onboardingComplete,
+          };
+          setUser(refreshedUser);
+          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(refreshedUser));
+          console.log("User data refreshed from server");
+        }
+      }
+    } catch (e) {
+      console.log("Could not refresh user data from server");
+    }
+  };
+
   const checkCanSendMessages = (): boolean => {
     if (!user) return false;
     if (!user.phoneVerified) return false;
@@ -242,6 +272,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setKingMembership,
         setPhoneVerified,
         completeOnboarding,
+        refreshUser,
       }}
     >
       {children}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   StyleSheet,
   View,
@@ -12,6 +12,7 @@ import {
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -37,7 +38,7 @@ type PaymentStatus = "none" | "pending" | "approved" | "rejected";
 
 export default function MembershipScreen() {
   const { theme, isDark } = useTheme();
-  const { user, setKingMembership, updateUser } = useAuth();
+  const { user, setKingMembership, updateUser, refreshUser } = useAuth();
   const headerHeight = useHeaderHeight();
   const tabBarHeight = useBottomTabBarHeight();
   const insets = useSafeAreaInsets();
@@ -48,9 +49,13 @@ export default function MembershipScreen() {
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("none");
   const [isCheckingStatus, setIsCheckingStatus] = useState(true);
 
-  useEffect(() => {
-    checkPaymentStatus();
-  }, [user?.id]);
+  // Refresh user data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      refreshUser();
+      checkPaymentStatus();
+    }, [user?.id])
+  );
 
   const checkPaymentStatus = async () => {
     if (!user?.id) return;

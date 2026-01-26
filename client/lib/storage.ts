@@ -4,7 +4,6 @@ import { getApiUrl } from "@/lib/query-client";
 
 const CONVERSATIONS_KEY_PREFIX = "@kingdate_conversations_";
 const MESSAGES_KEY = "@kingdate_messages";
-const MOCK_USERS_KEY = "@kingdate_mock_users_v4";
 const CURRENT_USER_KEY = "@kingdate_current_user_id";
 
 export async function setCurrentUserId(userId: string): Promise<void> {
@@ -26,6 +25,12 @@ export async function getConversations(
     const currentUserId = userId || (await getCurrentUserId());
     if (!currentUserId) return [];
 
+    // 로컬 저장소에서 기존 대화 정보 가져오기
+    const localStored = await AsyncStorage.getItem(
+      getConversationsKey(currentUserId),
+    );
+    const localConvs: Conversation[] = localStored ? JSON.parse(localStored) : [];
+
     // First try to fetch from server
     try {
       const url = new URL("/api/conversations", getApiUrl());
@@ -42,12 +47,16 @@ export async function getConversations(
           const serverConversations: Conversation[] = data.conversations.map(
             (conv: any) => {
               const otherUser = conv.otherUser;
+              // participantId로 매칭되는 로컬 대화 찾기 (로컬 ID 유지)
+              const localConv = localConvs.find(
+                (lc) => lc.participantId === otherUser.id || lc.serverConversationId === conv.id
+              );
               return {
-                id: conv.id,
+                id: localConv?.id || conv.id, // 로컬 ID 유지, 없으면 서버 ID 사용
                 serverConversationId: conv.id,
                 participantId: otherUser.id,
                 participantName: otherUser.name,
-                participantPhoto: otherUser.photos?.[0]?.url || "",
+                participantPhoto: otherUser.photos?.find((p: any) => p.approved)?.url || "",
                 participantGender: otherUser.gender,
                 lastMessage: conv.lastMessage?.content || "",
                 lastMessageTime: conv.lastMessageAt || conv.createdAt,
@@ -67,10 +76,7 @@ export async function getConversations(
     }
 
     // Fall back to local storage
-    const stored = await AsyncStorage.getItem(
-      getConversationsKey(currentUserId),
-    );
-    return stored ? JSON.parse(stored) : [];
+    return localConvs;
   } catch {
     return [];
   }
@@ -165,7 +171,8 @@ export async function addMessage(
         }),
       });
     } catch (e) {
-      console.log("Could not sync message to server");
+      console.error("[Message Sync Error]", e);
+      // 재시도 로직이나 큐 시스템 고려 가능
     }
   }
 }
@@ -205,158 +212,10 @@ export async function getUsers(
       }
     }
   } catch (e) {
-    console.log("Could not fetch users from API, using mock data");
+    console.log("Could not fetch users from API");
   }
 
-  return getMockUsers(gender);
-}
-
-export async function getMockUsers(
-  filterGender?: string,
-): Promise<UserProfile[]> {
-  try {
-    const stored = await AsyncStorage.getItem(MOCK_USERS_KEY);
-    let users: UserProfile[];
-    if (stored) {
-      users = JSON.parse(stored);
-    } else {
-      users = generateMockUsers();
-      await AsyncStorage.setItem(MOCK_USERS_KEY, JSON.stringify(users));
-    }
-
-    if (filterGender) {
-      return users.filter((u) => u.gender === filterGender);
-    }
-    return users;
-  } catch {
-    return generateMockUsers();
-  }
-}
-
-function generateMockUsers(): UserProfile[] {
-  const femaleNames = [
-    "소연",
-    "지우",
-    "민정",
-    "유나",
-    "하영",
-    "수현",
-    "은지",
-    "다혜",
-  ];
-  const maleNames = [
-    "준호",
-    "민호",
-    "서준",
-    "태현",
-    "우진",
-    "현수",
-    "지훈",
-    "동우",
-  ];
-  const locations = ["서울", "부산", "인천", "대구", "대전", "광주"];
-  const occupations = [
-    "디자이너",
-    "엔지니어",
-    "의사",
-    "교사",
-    "아티스트",
-    "마케터",
-    "금융인",
-    "사업가",
-  ];
-  const hobbies = [
-    "여행",
-    "독서",
-    "운동",
-    "음악",
-    "요리",
-    "사진",
-    "게임",
-    "등산",
-  ];
-  const foods = [
-    "한식",
-    "일식",
-    "양식",
-    "태국음식",
-    "커피",
-    "와인",
-    "디저트",
-    "건강식",
-  ];
-
-  const samplePhotos = [
-    {
-      url: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=400&fit=crop",
-      approved: true,
-    },
-    {
-      url: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop",
-      approved: true,
-    },
-    {
-      url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&h=400&fit=crop",
-      approved: true,
-    },
-    {
-      url: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=400&fit=crop",
-      approved: true,
-    },
-  ];
-
-  const users: UserProfile[] = [];
-
-  femaleNames.forEach((name, i) => {
-    const hasPhotos = name === "은지" || name === "유나";
-    users.push({
-      id: `female_${i}`,
-      gender: "female",
-      name,
-      age: 20 + i * 2 + Math.floor(Math.random() * 3),
-      location: locations[Math.floor(Math.random() * locations.length)],
-      occupation: occupations[Math.floor(Math.random() * occupations.length)],
-      hobbies: hobbies.sort(() => 0.5 - Math.random()).slice(0, 3),
-      foodPreferences: foods.sort(() => 0.5 - Math.random()).slice(0, 2),
-      bio: "진정한 만남을 찾고 있어요.",
-      photos: hasPhotos ? samplePhotos : [],
-      isVerified: true,
-      isKingMember: false,
-      phoneVerified: true,
-      profileComplete: true,
-      onboardingComplete: true,
-      lastActive: new Date(Date.now() - Math.random() * 3600000).toISOString(),
-      createdAt: new Date(
-        Date.now() - Math.random() * 30 * 24 * 3600000,
-      ).toISOString(),
-    });
-  });
-
-  maleNames.forEach((name, i) => {
-    users.push({
-      id: `male_${i}`,
-      gender: "male",
-      name,
-      age: 26 + Math.floor(Math.random() * 10),
-      location: locations[Math.floor(Math.random() * locations.length)],
-      occupation: occupations[Math.floor(Math.random() * occupations.length)],
-      hobbies: hobbies.sort(() => 0.5 - Math.random()).slice(0, 3),
-      foodPreferences: foods.sort(() => 0.5 - Math.random()).slice(0, 2),
-      bio: "새로운 인연을 기다리고 있습니다.",
-      photos: [],
-      isVerified: true,
-      isKingMember: true,
-      phoneVerified: true,
-      profileComplete: true,
-      onboardingComplete: true,
-      lastActive: new Date(Date.now() - Math.random() * 3600000).toISOString(),
-      createdAt: new Date(
-        Date.now() - Math.random() * 30 * 24 * 3600000,
-      ).toISOString(),
-    });
-  });
-
-  return users;
+  return [];
 }
 
 export async function createConversation(
@@ -397,7 +256,7 @@ export async function createConversation(
     serverConversationId,
     participantId: participant.id,
     participantName: participant.name,
-    participantPhoto: participant.photos[0]?.url || "",
+    participantPhoto: participant.photos?.find((p: any) => p.approved)?.url || "",
     participantGender: participant.gender,
     lastMessage: "",
     lastMessageTime: new Date().toISOString(),
@@ -418,7 +277,10 @@ export async function updateConversationLastMessage(
   if (!currentUserId) return;
 
   const conversations = await getConversations(currentUserId);
-  const index = conversations.findIndex((c) => c.id === conversationId);
+  // 로컬 ID 또는 서버 ID로 검색
+  const index = conversations.findIndex(
+    (c) => c.id === conversationId || c.serverConversationId === conversationId
+  );
   if (index !== -1) {
     conversations[index].lastMessage = message;
     conversations[index].lastMessageTime = new Date().toISOString();

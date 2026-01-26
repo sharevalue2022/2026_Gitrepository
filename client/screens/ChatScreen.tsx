@@ -72,7 +72,10 @@ export default function ChatScreen() {
 
   const loadConversation = useCallback(async () => {
     const conversations = await getConversations();
-    const conv = conversations.find((c) => c.id === conversationId);
+    // 서버 ID 또는 로컬 ID로 검색
+    const conv = conversations.find(
+      (c) => c.id === conversationId || c.serverConversationId === conversationId
+    );
     if (conv) setConversation(conv);
   }, [conversationId]);
 
