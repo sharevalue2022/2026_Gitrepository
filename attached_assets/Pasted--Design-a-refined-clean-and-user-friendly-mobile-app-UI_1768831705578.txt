@@ -1,0 +1,60 @@
+“Design a refined, clean, and user-friendly mobile app UI/UX for a dating application named ‘KingDate’, according to the following guidelines.
+This app is intended exclusively for Korean users, and all interface text, labels, messages, and system dialogs must be presented in Korean.
+
+1. Visual Style (Refinement & Cleanliness)
+
+Minimalism & Flat Design: Eliminate unnecessary elements and use simple components, clear typography, and flat color palettes to communicate information efficiently.
+
+Glassmorphism Application: Incorporate translucent, soft glass-like textures and layered depth to create a modern, airy, and premium visual experience.
+
+Visual Hierarchy: Adjust size, color, and layout based on importance so that users’ attention is naturally drawn first to the most critical information.
+
+2. User Comfort (Psychological Stability & Intuitiveness)
+
+Gestalt Principles: Apply principles such as Similarity, Proximity, and Symmetry to group elements logically and create a balanced layout that minimizes cognitive confusion.
+
+AI-Driven Personalization: Design a predictive interface that anticipates user behavior and proactively surfaces the next most relevant actions or features.
+
+Accessibility Assurance: Maintain a minimum body text size of 14–16px for readability, and ensure sufficient contrast between background and text elements.
+
+3. Immediate Responsiveness (Interaction & Immersion)
+
+Micro-interactions: Provide instant, satisfying animated feedback for user actions such as button taps, refresh actions, and state changes.
+
+Gesture-Based Navigation: Utilize natural gestures—such as swipe, tap, and pinch—to minimize reliance on buttons and maximize usable screen space.
+
+State Guidance: Clearly communicate system status and progress in real time using progress bars and visual cues.
+
+4. Subscription & Payment Flow (Temporary Manual Payment UI)
+
+When the user taps on a subscription payment button, display a payment guidance modal instead of an automated payment gateway.
+
+This modal should:
+
+Clearly explain (in Korean) that the payment method is temporary/manual.
+
+Display a placeholder bank account number (e.g., “국민은행 123-456-789012 (예시 계좌)”).
+
+Include guidance text instructing the user to transfer the subscription fee to the displayed account.
+
+Maintain a trustworthy, clean, and calm tone to reduce payment anxiety.
+
+Design this flow so it can later be easily replaced with a formal in-app payment system without disrupting the UI structure.
+
+Goal
+
+To create an experience that Korean users can intuitively use without prior learning, and that feels like a living, responsive app through continuous and meaningful feedback at every interaction.”
+
+💡 Key Insights Supporting the Prompt (Source-Based Rationale)
+
+Refined Aesthetics
+Glassmorphism is highlighted as a major 2026 UI trend, bringing a sense of materiality and modern sophistication. Flat design reinforces clarity, speed, and consistency across devices.
+
+User Comfort & Stability
+Psychological comfort increases when information is structured through clear visual hierarchy. Symmetry, in particular, creates trust and calm—especially important in social and dating applications.
+
+Immediate Feedback as Trust-Building
+Micro-interactions act as functional confirmations, signaling that user actions are recognized and successful. These details significantly increase perceived reliability and engagement.
+
+Future-Oriented UX
+Predictive interfaces reduce friction by anticipating intent, enabling users to achieve goals faster with fewer conscious decisions.
